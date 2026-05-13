@@ -3,7 +3,8 @@ name: geno-loops
 description: >-
   Execution loop patterns — turbocharge (spec-driven convergence), cruise
   (plan-driven sequential), boost (pomodoro focus), drift (question-driven
-  exploration), ignition (cold-start bootstrap), autopilot (background monitoring).
+  exploration), ignition (cold-start bootstrap), autopilot (background monitoring),
+  supercharge (long-running autonomous sessions).
   Use when user says /geno-loops.
 license: MIT
 metadata:
@@ -23,3 +24,4 @@ Execution loop patterns for autonomous and semi-autonomous agent work.
 | geno-loops-drift | /geno-loops-drift | Question-driven exploration — prioritized Q queue |
 | geno-loops-ignition | /geno-loops-ignition | Cold-start bootstrap — turn goal into blueprint |
 | geno-loops-autopilot | /geno-loops-autopilot | Background monitoring — watch CI/tests/lint/git |
+| geno-loops-supercharge | /geno-loops-supercharge | Long-running autonomous sessions — 8-24h multi-cycle runs |
