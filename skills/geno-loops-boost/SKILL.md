@@ -8,6 +8,18 @@ license: MIT
 metadata:
   author: 42euge
   version: "0.1.0"
+  observability:
+    success_signal: "Session completed with at least one full work+reflect cycle and reflection logged to geno-notes"
+    failure_signals:
+      - "ScheduleWakeup never fires and no reflection occurs"
+      - "geno-notes note fails and session.md also fails to write"
+      - "Zero work blocks completed before the session ends"
+    knowledge_reads:
+      - "geno-notes active tasks (project scope)"
+      - "Previous boost session logs in .geno/loops/boost/"
+    knowledge_writes:
+      - "Reflection journal entries in geno-notes (kind: note, milestone)"
+      - "Session log at .geno/loops/boost/<timestamp>/session.md"
 ---
 
 # Boost Loop (Pomodoro)
@@ -90,6 +102,25 @@ When the wakeup fires, transition to reflection:
 
 - If `geno-notes` fails, log the reflection to `session.md` and continue.
 - If the agent crashes during a work block, the `ScheduleWakeup` will still fire. On wake, the agent should attempt to reconstruct the lost work state from file changes.
+
+## Completion
+
+When this skill finishes (success, failure, or abandoned), emit a trace:
+
+```bash
+geno-trace emit \
+  --skill geno-loops-boost \
+  --status <success|failure|abandoned> \
+  --tool-calls <approximate count> \
+  --errors <count of tool/command errors> \
+  --task <geno-notes task id, if any> \
+  --scope project \
+  --produced "<.geno/loops/boost/<timestamp>/session.md>"
+```
+
+- `success` = at least one full work+reflect cycle completed with reflection logged to geno-notes
+- `failure` = no work blocks completed, or reflection could not be persisted anywhere
+- `abandoned` = user stopped early
 
 ## Runtime
 
