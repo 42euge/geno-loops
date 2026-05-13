@@ -9,6 +9,23 @@ license: MIT
 metadata:
   author: 42euge
   version: "0.1.0"
+  observability:
+    success_signal: "Monitoring window completed or PR merged with all signals healthy at final cycle"
+    failure_signals:
+      - "All monitored signals become unavailable"
+      - "Same safe fix fails twice and escalation gets no response"
+      - "Auto-commit accidentally targets the default branch"
+      - "Session ends with unresolved regressions that were never escalated"
+    knowledge_reads:
+      - "geno-notes active tasks (project scope)"
+      - "CI/PR status via gh CLI"
+      - "Local test and lint command outputs"
+      - "Git working tree and branch state"
+    knowledge_writes:
+      - "Cycle logs and baseline in .geno/loops/autopilot/<timestamp>/session.md"
+      - "Auto-fix commits on feature branches"
+      - "Bug and milestone notes in geno-notes (kind: bug, milestone)"
+      - "Follow-up tasks suggested or created in geno-notes"
 ---
 
 # Autopilot Loop
@@ -165,6 +182,25 @@ When stopping, write a final summary to `session.md` and report whether the sess
 - **Don't commit to the default branch.** Background maintenance must stay off `main`/`master`.
 - **Don't overwrite user changes.** If the tree is dirty from unrelated edits, log it and stop.
 - **Don't turn Autopilot into Turbocharge.** If the loop becomes active implementation, switch to a tighter execution loop.
+
+## Completion
+
+When this skill finishes (success, failure, or abandoned), emit a trace:
+
+```bash
+geno-trace emit \
+  --skill geno-loops-autopilot \
+  --status <success|failure|abandoned> \
+  --tool-calls <approximate count> \
+  --errors <count of tool/command errors> \
+  --task <geno-notes task id, if any> \
+  --scope project \
+  --produced "<.geno/loops/autopilot/<timestamp>/session.md>"
+```
+
+- `success` = monitoring window completed or PR merged with all signals healthy at final cycle
+- `failure` = all monitored signals unavailable, or unresolved regressions never escalated
+- `abandoned` = user stopped early
 
 ## Runtime
 

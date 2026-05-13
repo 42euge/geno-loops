@@ -9,6 +9,19 @@ license: MIT
 metadata:
   author: 42euge
   version: "0.1.0"
+  observability:
+    success_signal: "All questions in the queue answered, or max cycles reached with findings documented"
+    failure_signals:
+      - "No questions answered after multiple cycles"
+      - "Session ends with no findings logged to session.md or geno-notes"
+      - "Question queue grows unboundedly without any questions being resolved"
+    knowledge_reads:
+      - "geno-notes active tasks (project scope)"
+      - "Codebase files explored during investigation"
+    knowledge_writes:
+      - "Answered questions and findings in .geno/loops/drift/<timestamp>/session.md"
+      - "Question queue with answers in .geno/loops/drift/<timestamp>/questions.md"
+      - "Bug and decision notes in geno-notes (kind: bug, decision, milestone)"
 ---
 
 # Drift Loop
@@ -101,6 +114,25 @@ Once the question is sufficiently answered:
 - **Don't skip documentation.** The value of Drift is the trail of breadcrumbs it leaves.
 - **Don't fix things blindly.** If you find a bug, log it first. Only fix it if it blocks the exploration itself.
 - **Don't lose the thread.** Always relate findings back to the current or future questions.
+
+## Completion
+
+When this skill finishes (success, failure, or abandoned), emit a trace:
+
+```bash
+geno-trace emit \
+  --skill geno-loops-drift \
+  --status <success|failure|abandoned> \
+  --tool-calls <approximate count> \
+  --errors <count of tool/command errors> \
+  --task <geno-notes task id, if any> \
+  --scope project \
+  --produced "<.geno/loops/drift/<timestamp>/session.md>"
+```
+
+- `success` = all questions answered, or max cycles reached with findings documented in session.md and questions.md
+- `failure` = no questions answered after multiple cycles, or session ended without any findings logged
+- `abandoned` = user stopped early
 
 ## Runtime
 

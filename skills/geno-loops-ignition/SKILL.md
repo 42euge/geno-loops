@@ -9,6 +9,23 @@ license: MIT
 metadata:
   author: 42euge
   version: "0.1.0"
+  observability:
+    success_signal: "First verified slice bootstrapped — at least one layer passed scaffolder+builder+verifier with a usable artifact"
+    failure_signals:
+      - "Blueprint generated but no layers completed"
+      - "Two consecutive layers produce only placeholders without a usable slice"
+      - "Max layers reached with zero verified layers"
+      - "Goal too vague to generate a blueprint and user not reachable"
+    knowledge_reads:
+      - "geno-notes active tasks (project scope)"
+      - "Existing repo structure and conventions"
+      - "User-provided blueprint file (if --blueprint given)"
+    knowledge_writes:
+      - "Blueprint at .geno/loops/ignition/<timestamp>/blueprint.md"
+      - "Layer plans and checkpoint files in layers/ and checkpoints/"
+      - "Session log at .geno/loops/ignition/<timestamp>/session.md"
+      - "Milestone notes in geno-notes (kind: milestone, note)"
+      - "Scaffolded files and directories in the target repo"
 ---
 
 # Ignition Loop
@@ -183,6 +200,25 @@ Treat the blueprint as a living build sheet, not a frozen spec.
 - **Don't freeze the blueprint.** Update it when the repo teaches you something new.
 - **Don't confuse placeholders with completion.** Every layer should end with something checkable.
 - **Don't use Ignition when the work already has a detailed plan or test suite.** Prefer Cruise or Turbocharge in those cases.
+
+## Completion
+
+When this skill finishes (success, failure, or abandoned), emit a trace:
+
+```bash
+geno-trace emit \
+  --skill geno-loops-ignition \
+  --status <success|failure|abandoned> \
+  --tool-calls <approximate count> \
+  --errors <count of tool/command errors> \
+  --task <geno-notes task id, if any> \
+  --scope project \
+  --produced "<.geno/loops/ignition/<timestamp>/session.md>"
+```
+
+- `success` = first verified slice bootstrapped with at least one layer passing scaffolder+builder+verifier
+- `failure` = blueprint generated but no layers verified, or max layers reached with zero usable artifacts
+- `abandoned` = user stopped early
 
 ## Runtime
 
