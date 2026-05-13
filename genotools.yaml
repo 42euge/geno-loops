@@ -1,0 +1,5 @@
+name: geno-loops
+version: "0.1.0"
+description: Execution loop patterns for autonomous agent work
+requires:
+  - geno-notes
