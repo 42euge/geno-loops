@@ -26,6 +26,8 @@ metadata:
 
 # Drift Loop
 
+> Requires a geno-specs spec — see umbrella.
+
 Question-driven exploration loop. Ideal for codebase archaeology, debugging complex issues with unclear scope, or understanding unfamiliar systems. It maintains a prioritized queue of questions, systematically answering each while spawning new inquiries along the way.
 
 ## Input

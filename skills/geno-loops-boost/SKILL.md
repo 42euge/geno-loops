@@ -24,6 +24,8 @@ metadata:
 
 # Boost Loop (Pomodoro)
 
+> Requires a geno-specs spec — see umbrella.
+
 Time-boxed focus sessions. Implements the Pomodoro technique: 25 minutes of deep work followed by 5 minutes of reflection. Forces periodic stopping to prevent context degradation and ensure progress is logged. Journal-heavy — every reflection phase writes a journal entry to `geno-notes`.
 
 ## Input

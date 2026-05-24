@@ -30,6 +30,8 @@ metadata:
 
 # Autopilot Loop
 
+> Requires a geno-specs spec — see umbrella.
+
 Background monitoring and maintenance loop. Watches the repo or PR over a long window and reacts when conditions change. Low intensity and reactive: it wakes on a cron, checks health signals, applies safe fixes when obvious, and escalates anything ambiguous.
 
 ## Input
