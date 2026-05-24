@@ -24,6 +24,8 @@ observability:
 
 # Turbocharge Loop
 
+> Requires a geno-specs spec — see umbrella.
+
 Spec-driven convergence loop. Takes a testable specification (test file, acceptance criteria, type contract) and iterates until every criterion passes. Each iteration validates, identifies gaps, implements fixes, and re-validates. The loop converges toward zero failures.
 
 ## Input

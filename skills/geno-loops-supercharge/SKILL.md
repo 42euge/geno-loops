@@ -30,6 +30,8 @@ observability:
 
 # Supercharge — Long-Running Autonomous Agent Loop
 
+> Requires a geno-specs spec — see umbrella.
+
 Run an extended autonomous work session with structured cycles of planning, implementation, and evaluation. Works in any workspace — discovers tasks from geno-notes, scans for TODOs, or accepts user-specified goals. Based on Anthropic's harness design patterns for long-running apps.
 
 ## Input

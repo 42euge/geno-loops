@@ -12,6 +12,7 @@
 | geno-loops-drift | Question-driven exploration | Research, investigation, discovery |
 | geno-loops-ignition | Cold-start bootstrap | Turning a vague goal into a concrete blueprint |
 | geno-loops-autopilot | Background monitoring | Watching CI, tests, lint, git for changes |
+| geno-loops-dynamic | Adaptive self-paced (`/gl-dyn`) | Recurring tasks with variable runtime — rides iteration time |
 
 ## Repo structure
 
@@ -27,7 +28,8 @@ geno-loops/
     ├── geno-loops-boost/SKILL.md
     ├── geno-loops-drift/SKILL.md
     ├── geno-loops-ignition/SKILL.md
-    └── geno-loops-autopilot/SKILL.md
+    ├── geno-loops-autopilot/SKILL.md
+    └── geno-loops-dynamic/SKILL.md
 ```
 
 Previously these skills lived in `geno-dev` as `geno-dev-loops-*`. They were extracted into their own skillset because loops are a cross-cutting pattern used by many skillsets, not just dev workflows.

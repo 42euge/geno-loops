@@ -30,6 +30,8 @@ metadata:
 
 # Ignition Loop
 
+> Requires a geno-specs spec — see umbrella.
+
 Cold-start bootstrap loop. Takes a high-level goal, generates or loads a blueprint, then iteratively bootstraps the work in layers: structure -> implementation -> verification. Each layer hands off checkpoints between Scaffolder, Builder, and Verifier roles so the plan can evolve as the repo takes shape.
 
 ## Input

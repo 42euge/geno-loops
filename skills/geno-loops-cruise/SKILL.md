@@ -23,6 +23,8 @@ observability:
 
 # Cruise Loop
 
+> Requires a geno-specs spec — see umbrella.
+
 Plan-driven sequential execution. Takes a plan (numbered step list) and executes steps one at a time, each in a fresh Agent subagent with checkpoint handoff. Methodical and predictable — no re-planning, no parallelism, just steady forward progress.
 
 ## Input
