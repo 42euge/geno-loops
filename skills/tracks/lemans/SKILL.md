@@ -1,5 +1,5 @@
 ---
-name: geno-loops-engines-lemans
+name: geno-loops-tracks-lemans
 description: >-
   Endurance loop — long-haul, iteration-on-worktree pattern. Each iteration
   is a single small, verified, merged-to-main change with tests, an entry
@@ -117,9 +117,26 @@ Local Mac                              Remote (z2)
 - The spec content or `--spec` path on the remote filesystem
 
 **Checking status (without capture-pane!):**
-- Read ITERATION_LOG.md via `ssh host "tail -30 <work-dir>/ITERATION_LOG.md"`
-- Read vault outbox: `cat /Volumes/HIL_DATA/erramos/geno/outbox/<project>/`
-- Check dashboard: `cat /Volumes/HIL_DATA/erramos/geno/dashboard.md`
+
+Detect execution context first, then read accordingly:
+
+```
+IF hostname == remote-host (or $SSH_CONNECTION is set, or uname -n matches z2):
+  # Running ON z2 — read files directly
+  - ITERATION_LOG.md:  tail -30 <work-dir>/ITERATION_LOG.md
+  - Vault outbox:      ls ~/geno-vault/outbox/<project>/  OR  cat ~/geno-vault/<project>/main.md
+  - Dashboard:         cat ~/geno-vault/dashboard.md
+ELSE:
+  # Running on Mac (or any non-z2 host) — go through SSH
+  - ITERATION_LOG.md:  ssh remote-host "tail -30 <work-dir>/ITERATION_LOG.md"
+  - Vault outbox:      ssh remote-host "ls ~/geno-vault/outbox/<project>/ && cat ~/geno-vault/<project>/main.md"
+  - Dashboard:         ssh remote-host "cat ~/geno-vault/dashboard.md"
+  - tmux sessions:     ssh remote-host "tmux list-sessions"
+```
+
+Never use `/Volumes/HIL_DATA/` paths — that mount is Mac-only and unreliable.
+Never use `capture-pane` — it returns raw terminal escape codes.
+Vault root on z2 is always `~/geno-vault/`.
 
 **Example:**
 ```bash

@@ -15,8 +15,8 @@
 | geno-loops-engines-autopilot | /geno-loops-engines-autopilot | Background monitoring | Watching CI, tests, lint, git for changes |
 | geno-loops-engines-supercharge | /geno-loops-engines-supercharge | Long-running autonomous | 8–24h multi-cycle runs |
 | geno-loops-engines-dynamic | /geno-loops-engines-dynamic | Adaptive self-paced | Recurring tasks with variable runtime |
-| geno-loops-engines-lemans | /geno-loops-engines-lemans | Endurance | Long-haul worktree work, one small verified change per lap |
-| geno-loops-engines-lemans-restart | /geno-loops-engines-lemans-restart | Kill/restart | Kill and restart all Le Mans loops from the registry |
+| geno-loops-tracks-lemans | /geno-loops-tracks-lemans | Endurance | Long-haul worktree work, one small verified change per lap |
+| geno-loops-tracks-lemans-restart | /geno-loops-tracks-lemans-restart | Kill/restart | Kill and restart all Le Mans loops from the registry |
 
 ## Repo structure
 
@@ -36,38 +36,45 @@ geno-loops/
 │   └── config/defaults.yaml
 └── skills/
     ├── geno-loops/SKILL.md          ← umbrella skill
-    ├── geno-loops-engines-turbocharge/SKILL.md
-    ├── geno-loops-engines-cruise/SKILL.md
-    ├── geno-loops-engines-boost/SKILL.md
-    ├── geno-loops-engines-drift/SKILL.md
-    ├── geno-loops-engines-ignition/SKILL.md
-    ├── geno-loops-engines-autopilot/SKILL.md
-    ├── geno-loops-engines-supercharge/SKILL.md
-    ├── geno-loops-engines-dynamic/SKILL.md
-    ├── geno-loops-engines-lemans/SKILL.md
-    └── geno-loops-engines-lemans-restart/SKILL.md
+    ├── engines/                     ← strategy loops (name: geno-loops-engines-*)
+    │   ├── turbocharge/SKILL.md
+    │   ├── cruise/SKILL.md
+    │   ├── boost/SKILL.md
+    │   ├── drift/SKILL.md
+    │   ├── ignition/SKILL.md
+    │   ├── autopilot/SKILL.md
+    │   ├── supercharge/SKILL.md
+    │   └── dynamic/SKILL.md
+    └── tracks/                   ← long-haul lap loops (name: geno-loops-tracks-*)
+        ├── lemans/SKILL.md
+        └── lemans-restart/SKILL.md
 ```
 
 ## Conventions
 
-### Skill naming — the engines pattern
+### Skill naming — two sub-skillsets
 
-Skills follow the `{skillset}-{sub-skillset}-{skill}` three-segment pattern. For geno-loops, the sub-skillset is `engines` (pluralized noun):
+Skills follow the `{skillset}-{sub-skillset}-{skill}` three-segment pattern. Two sub-skillsets exist:
 
-```
-geno-loops-engines-{name}
-```
+- **`engines`** — strategy loops (`geno-loops-engines-{name}`). Live in `skills/engines/{name}/`.
+- **`tracks`** — long-haul lap loops (`geno-loops-tracks-{name}`). Live in `skills/tracks/{name}/`.
 
-The umbrella skill (`geno-loops`) is the only one-segment name in this repo — it is the entry point that routes to an engine.
+The leaf directory name is the short skill name (e.g. `turbocharge`, `lemans`). The fully-qualified name is in the `name:` frontmatter of each SKILL.md.
+
+The umbrella skill (`geno-loops`) is the only one-segment name — it routes to the right sub-skillset.
 
 ### Adding a new engine
 
-1. Create `skills/geno-loops-engines-{name}/SKILL.md` with `name: geno-loops-engines-{name}` in frontmatter.
-2. Add the engine to the umbrella SKILL.md table in `skills/geno-loops/SKILL.md`.
-3. Add the engine to `skills.sh.json` under the `"Engines"` grouping.
+1. Create `skills/engines/{name}/SKILL.md` with `name: geno-loops-engines-{name}` in frontmatter.
+2. Add it to the umbrella SKILL.md table in `skills/geno-loops/SKILL.md`.
+3. Add it to `skills.sh.json` under the `"Engines"` grouping.
 4. Update the skills table in this file (GENO.md).
 5. Copy GENO.md → AGENTS.md, CLAUDE.md, GEMINI.md (see Agent instruction files below).
 6. Bump the patch version in `genotools.yaml` and `skills/geno-loops/SKILL.md`.
+
+### Adding a new track loop
+
+Same steps, but use `skills/tracks/{name}/`, `name: geno-loops-tracks-{name}`, and the `"Tracks"` grouping in `skills.sh.json`.
 
 ### Command prefix aliasing
 
