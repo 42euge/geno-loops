@@ -43,3 +43,4 @@ Execution loop patterns for autonomous and semi-autonomous agent work.
 | geno-loops-supercharge | /geno-loops-supercharge | Long-running autonomous sessions — 8-24h multi-cycle runs |
 | geno-loops-dynamic | /geno-loops-dynamic (alias /gl-dyn) | Adaptive self-paced — starts at 10min, EMA-steps interval toward iteration duration + buffer |
 | geno-loops-lemans | /geno-loops-lemans (alias /gl-lemans) | Endurance — long-haul iteration-on-worktree, one small verified change per lap, ff-merged with log + reports |
+| geno-loops-lemans-restart | /geno-loops-lemans-restart | Kill and restart all Le Mans loops from `~/geno-vault/loops.yaml` |
