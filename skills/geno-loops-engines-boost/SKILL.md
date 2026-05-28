@@ -1,5 +1,5 @@
 ---
-name: geno-loops-boost
+name: geno-loops-engines-boost
 description: >-
   Time-boxed focus sessions (Pomodoro) — work for 25min, reflect for 5min.
   Use when user says /geno-loops-boost.

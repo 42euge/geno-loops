@@ -1,5 +1,5 @@
 ---
-name: geno-loops-drift
+name: geno-loops-engines-drift
 description: >-
   Question-driven exploration loop. Maintains a prioritized question queue.
   Each cycle answers the top question and may spawn new questions.

@@ -1,5 +1,5 @@
 ---
-name: geno-loops-turbocharge
+name: geno-loops-engines-turbocharge
 description: >-
   Spec-driven convergence loop — iterate until all acceptance criteria pass.
   Use when user says /geno-loops-turbocharge.
