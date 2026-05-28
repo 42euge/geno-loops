@@ -1,7 +1,7 @@
 ---
 name: geno-loops-tracks-lemans-restart
 description: >-
-  Kill and restart all Le Mans loops from the registry (~/.geno/geno-vault/loops.yaml).
+  Kill and restart all Le Mans loops from the registry (~/.geno-tools/geno-loops/vault/loops.yaml).
   Reads the loop registry, kills all claude processes on the remote host,
   then relaunches every session with its configured prompt. Use when user
   says /geno-loops-lemans-restart or "restart all loops" or "restart the loops".
@@ -18,14 +18,13 @@ Kill and restart all loops (or a single one) from the loop registry.
 
 ## Input
 
-- **No args** — restart ALL loops from `~/.geno/geno-vault/loops.yaml`
+- **No args** — restart ALL loops from `~/.geno-tools/geno-loops/vault/loops.yaml`
 - **`--kill-only`** — kill all loops but don't restart
 - **`--session <name>`** — restart only one session (e.g., `t3-BlueTron`)
 
 ## Registry
 
-The loop registry lives at `~/.geno/geno-vault/loops.yaml` (symlinked to
-`/Volumes/HIL_DATA/erramos/geno/loops.yaml` = `/mnt/HIL_DATA/erramos/geno/loops.yaml` on z2).
+The loop registry lives at `~/.geno-tools/geno-loops/vault/loops.yaml`.
 
 It defines:
 - `vault` — vault path on the remote
@@ -42,7 +41,7 @@ It defines:
 
 ### 1. Resolve remote host
 
-Read `~/.geno/geno-loops/config/config.yaml` → `execution.remote_host` (default: `z2`).
+Read `~/.geno-tools/geno-loops/config/geno-loops.yaml` → `execution.remote_host` (default: `z2`).
 Resolve hostname from `~/.geno/config.yaml` → `remote.hosts.<alias>.hostname`.
 
 ### 2. Kill
@@ -77,7 +76,7 @@ Wait 5 seconds.
 
 ### 5. Send loop prompts from registry
 
-Read `~/.geno/geno-vault/loops.yaml`. For each loop entry, compose the full prompt:
+Read `~/.geno-tools/geno-loops/vault/loops.yaml`. For each loop entry, compose the full prompt:
 
 ```
 /loop {interval} {email_rule} {steer_rule} --- {prompt}
@@ -116,5 +115,5 @@ Print a summary table:
 ## Important
 
 - **Never use `tmux capture-pane`** — it kills sessions.
-- The registry is the single source of truth. Edit `~/.geno/geno-vault/loops.yaml` to change prompts, add loops, or remove them.
+- The registry is the single source of truth. Edit `~/.geno-tools/geno-loops/vault/loops.yaml` to change prompts, add loops, or remove them.
 - After editing the registry, run `/geno-loops-restart` to apply changes.
