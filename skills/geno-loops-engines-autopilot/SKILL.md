@@ -1,5 +1,5 @@
 ---
-name: geno-loops-autopilot
+name: geno-loops-engines-autopilot
 description: >-
   Background monitoring loop — periodically checks CI, tests, lint, and git
   status, auto-fixing low-risk issues or alerting when human attention is

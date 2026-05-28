@@ -1,5 +1,5 @@
 ---
-name: geno-loops-ignition
+name: geno-loops-engines-ignition
 description: >-
   Cold-start bootstrap loop — turn a high-level goal into a blueprint,
   scaffold, implementation, and verification cycle.

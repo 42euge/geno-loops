@@ -1,5 +1,5 @@
 ---
-name: geno-loops-cruise
+name: geno-loops-engines-cruise
 description: >-
   Plan-driven sequential execution loop — execute a plan one step at a time.
   Use when user says /geno-loops-cruise.

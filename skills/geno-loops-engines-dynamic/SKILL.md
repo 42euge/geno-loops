@@ -1,5 +1,5 @@
 ---
-name: geno-loops-dynamic
+name: geno-loops-engines-dynamic
 description: >-
   Adaptive self-paced loop — wraps /loop in dynamic mode. Starts at 10
   minutes, measures each iteration's duration, then EMA-steps the wake
