@@ -47,10 +47,11 @@ iteration picks the next-best small improvement that moves toward it.
 
 Parse `$ARGUMENTS` for:
 
-- **`--spec <file>`** (required) — path to a geno-specs YAML spec describing
-  the durable goal. Conventional location: `.specs/features/<slug>.genospecs.yaml`.
-  If missing, the loop refuses to start and points the user at
-  `/geno-specs-init` (which runs superpowers brainstorming to author one).
+- **`--spec <file>`** — path to an existing geno-specs YAML spec.
+  Conventional location: `.specs/features/<slug>.genospecs.yaml`.
+- **`<prompt>`** — if no `--spec` is provided, the remaining arguments are
+  treated as a free-text description of what the project should accomplish.
+  Le Mans will generate a spec from this prompt (see Spec Generation below).
 - **`--interval <duration>`** — wake interval between iterations (default `30m`).
   Examples: `15m`, `45m`, `1h`. Used by `ScheduleWakeup`.
 - **`--worktree-root <dir>`** — where to create per-iteration worktrees
@@ -62,16 +63,150 @@ Parse `$ARGUMENTS` for:
     3. `npm run iter-reports`
   If none exist, the loop will create a minimal `scripts/generate_iteration_reports.py`
   stub on first run and ask the user to flesh it out.
+- **`--vault <path>`** — path to shared Obsidian vault for inter-loop
+  communication (see Vault Communication section below).
+- **`--remote <host>`** — SSH host alias to launch on. **This is the DEFAULT**
+  (configured in `~/.geno/geno-loops/config/config.yaml` → `execution.mode: remote`).
+  Resolves to hostname via `~/.geno/config.yaml` → `remote.hosts.<alias>.hostname`.
+  Le Mans does NOT run locally unless `--local` is explicitly passed. Instead it:
+  1. Resolves the host from config (default: `z2`)
+  2. SSHes to the remote, creates a tmux session, starts claude
+  3. Sends the `/loop` command into the remote session
+  4. Returns the connect command to the user and exits locally
+  This ensures the loop persists on the remote even when your laptop sleeps/closes.
+- **`--local`** — override remote default and run the loop in this session.
+  Only use when you specifically want the loop tied to this terminal's lifetime.
+- **`--session-name <name>`** — tmux session name on the remote (default: auto-generated
+  from project name, e.g., `t3-BlueTron`).
+- **`--work-dir <path>`** — working directory on the remote host. If not provided,
+  uses the same relative path from `$HOME` as the local cwd, or prompts.
 
-If `--spec` is absent, use `AskUserQuestion`:
+### Remote Execution
 
-> Le Mans requires a geno-specs spec as the durable goal.
-> Options:
->   1. Point me at an existing spec file
->   2. Run /geno-specs-init now to author one (uses superpowers brainstorming)
->   3. Cancel
+When `--remote` is specified, Le Mans acts as a **launcher** — it sets up the
+persistent session on the remote and exits. The actual iteration work happens
+inside the remote tmux session, surviving laptop sleep/close/reboot.
 
-Do not invent a spec inline. The spec is the contract for the entire run.
+**Flow:**
+
+```
+Local Mac                              Remote (z2)
+─────────                              ───────────
+/geno-loops-lemans --remote z2 ...
+  │
+  ├─ resolve host from ~/.geno/config.yaml
+  ├─ ssh ngrt-ug-z2 "mkdir -p <work-dir>"
+  ├─ scp spec file → remote (if generated locally)
+  ├─ ssh: tmux new-session -d -s <name> -c <work-dir>
+  ├─ ssh: tmux send-keys "claude --dangerously-skip-permissions" Enter
+  ├─ wait 12s for boot
+  ├─ ssh: tmux send-keys Enter  (dismiss welcome)
+  ├─ wait 3s
+  ├─ ssh: tmux send-keys "/loop <interval> <full prompt>" Enter
+  ├─ ssh: tmux send-keys Enter  (submit)
+  │
+  └─ Output to user:
+       "Le Mans launched on ngrt-ug-z2 in tmux session <name>
+        Connect: ssh -t ngrt-ug-z2 \"tmux attach -t <name>\""
+```
+
+**The remote loop prompt includes:**
+- The full Le Mans iteration protocol (worktrees, ff-only, tests, log, reports)
+- Vault path (if `--vault` provided)
+- Email schedule (working hours only, queue overnight, morning trickle)
+- The spec content or `--spec` path on the remote filesystem
+
+**Checking status (without capture-pane!):**
+- Read ITERATION_LOG.md via `ssh host "tail -30 <work-dir>/ITERATION_LOG.md"`
+- Read vault outbox: `cat /Volumes/HIL_DATA/erramos/geno/outbox/<project>/`
+- Check dashboard: `cat /Volumes/HIL_DATA/erramos/geno/dashboard.md`
+
+**Example:**
+```bash
+# Launch BlueTron on z2 from your Mac
+/geno-loops-lemans --remote z2 --work-dir ~/code-cyan/BlueTron \
+  --spec .specs/blue-tron.yaml --vault /mnt/HIL_DATA/erramos/geno
+
+# Or with just a prompt (generates spec on remote)
+/geno-loops-lemans --remote z2 --work-dir ~/code-cyan/MyNewProject \
+  Build a REST API that wraps the Quintron Python client for web access
+```
+
+### Configuration
+
+Le Mans reads defaults from `~/.geno/geno-loops/config/config.yaml`:
+```yaml
+execution:
+  mode: remote              # remote by default — loops survive laptop close
+  remote_host: remote-dev   # from ~/.geno/config.yaml remote.hosts
+  claude_flags: "--dangerously-skip-permissions"
+  session_prefix: t
+
+vault:
+  enabled: true
+  paths:
+    remote-dev: /mnt/shared/geno
+    local: /Volumes/shared/geno
+
+email:
+  to: user@example.com
+  schedule:
+    working_hours_start: "06:00"
+    working_hours_end: "18:30"
+    outside_hours: queue
+    morning_trickle: { enabled: true, start: "06:00", interval_minutes: 5 }
+    evening_digest: { enabled: true, time: "21:30" }
+
+lemans:
+  interval: 30m
+  worktree_cleanup: true
+  reports_required: true
+  ff_only: true
+
+remote_work_dir: code-cyan
+```
+
+CLI args override config. Config file is optional — sensible defaults
+are baked in when no config exists.
+
+### Spec Resolution
+
+Le Mans needs a spec. It resolves one in this order:
+
+1. **`--spec <file>` provided** → use it directly.
+2. **Free-text prompt provided (no `--spec`)** → generate a spec:
+   - Analyze the prompt + current repo state (README, existing code, git log)
+   - Draft a `.specs/features/<slug>.genospecs.yaml` with: name, description,
+     goals, architecture notes, technologies, iteration_plan (ordered list)
+   - Write it to disk and show the user for confirmation
+   - If the user approves (or we're in `--dangerously-skip-permissions`), proceed
+   - The generated spec becomes the durable goal for all subsequent iterations
+3. **Neither provided** → look for a single `.specs/features/*.genospecs.yaml`
+   in the repo. If exactly one exists, use it. If multiple exist, ask.
+4. **Still nothing** → use `AskUserQuestion`:
+   > Le Mans needs a goal. Options:
+   >   1. Point me at an existing spec file
+   >   2. Describe what you want to build (I'll generate a spec)
+   >   3. Cancel
+
+### Spec Generation from Prompt
+
+When generating a spec from a free-text prompt:
+
+1. Read the repo: README.md, directory structure, package.json/pyproject.toml,
+   recent git log, any existing docs.
+2. Interpret the prompt as the "championship" — the durable, long-horizon goal.
+3. Break it into 5-10 concrete iteration plan items (ordered, actionable).
+4. Identify interfaces, technologies, key references.
+5. Write the YAML spec to `.specs/features/<slug>.genospecs.yaml`.
+6. Commit it: `git add .specs/ && git commit -m "spec: <slug> — generated from prompt"`.
+7. Proceed to iteration 1.
+
+Example usage:
+```
+/geno-loops-lemans Build a voice-controlled interface to Quintron using geno-voice as the STT/TTS library
+```
+This generates a spec and starts iterating immediately.
 
 ## When to Use
 
@@ -413,3 +548,84 @@ geno-trace emit \
 No venv or scripts of its own — pure markdown workflow over `git worktree`,
 `pytest` (or project equivalent), and `ScheduleWakeup` (or cron). Uses
 `geno-specs` for the durable goal and `geno-notes` for milestones.
+
+
+## Vault Communication (optional)
+
+When `--vault <path>` is provided, the loop integrates with a shared
+Obsidian vault for bidirectional steering and inter-loop communication.
+
+### Arguments
+
+- **`--vault <path>`** (optional) — path to the shared vault root.
+  Conventional location: `/mnt/HIL_DATA/erramos/geno/` (z2) or
+  `/Volumes/HIL_DATA/erramos/geno/` (Mac).
+
+### Protocol
+
+#### Inbox Check (start of each iteration)
+
+Before picking work, scan `<vault>/inbox/` for any markdown file whose
+filename or `project:` frontmatter matches this loop's project name.
+If found:
+
+1. Read the steering instructions.
+2. Follow them (reprioritize, skip, focus, etc.).
+3. Move the processed note to `<vault>/inbox/archive/` so it is not
+   re-processed on the next iteration.
+
+If no steering note exists, proceed normally (pick from spec/log).
+
+#### Outbox Write (end of each iteration)
+
+After merging and regenerating reports, write a brief status note to:
+
+```
+<vault>/outbox/<PROJECT>/iter-NNN.md
+```
+
+Format:
+
+```markdown
+---
+project: <project-name>
+iteration: NNN
+date: YYYY-MM-DD HH:MM
+status: merged|failed|skipped
+---
+
+## What I did
+<2-3 sentences>
+
+## What I found
+<discoveries, if any>
+
+## Next
+<what the next iteration will likely tackle>
+```
+
+#### Handoff Write (when discovering something for another project)
+
+Append to `<vault>/shared/handoffs.md`:
+
+```markdown
+### <date> — <source-project> → <target-project>
+<what was found and why the target project should know>
+```
+
+#### Blocker Escalation
+
+When stuck on something that requires user intervention, append to
+`<vault>/shared/blockers.md`:
+
+```markdown
+### <date> — <project> — <one-line summary>
+<description of what's blocking and what help is needed>
+```
+
+### Dashboard
+
+A vault-keeper session (or any loop with `--vault-keeper` flag)
+periodically regenerates `<vault>/dashboard.md` by scanning all
+`outbox/` directories for the latest notes and producing a summary
+table.
