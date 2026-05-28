@@ -13,9 +13,15 @@
         "geno-loops-engines-ignition",
         "geno-loops-engines-autopilot",
         "geno-loops-engines-supercharge",
-        "geno-loops-engines-dynamic",
-        "geno-loops-engines-lemans",
-        "geno-loops-engines-lemans-restart"
+        "geno-loops-engines-dynamic"
+      ]
+    },
+    {
+      "title": "Tracks",
+      "description": "Long-haul lap loops — sustained iteration over hours or days.",
+      "skills": [
+        "geno-loops-tracks-lemans",
+        "geno-loops-tracks-lemans-restart"
       ]
     },
     {

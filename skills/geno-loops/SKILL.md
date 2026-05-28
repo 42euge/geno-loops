@@ -1,12 +1,12 @@
 ---
 name: geno-loops
 description: >-
-  Execution loop engines — turbocharge (spec-driven convergence), cruise
-  (plan-driven sequential), boost (pomodoro focus), drift (question-driven
-  exploration), ignition (cold-start bootstrap), autopilot (background
-  monitoring), supercharge (long-running autonomous sessions), dynamic
-  (adaptive self-paced), lemans (endurance), lemans-restart (kill/restart).
-  Use when user says /geno-loops.
+  Execution loop engines and track loops — turbocharge (spec-driven
+  convergence), cruise (plan-driven sequential), boost (pomodoro focus),
+  drift (question-driven exploration), ignition (cold-start bootstrap),
+  autopilot (background monitoring), supercharge (long-running autonomous
+  sessions), dynamic (adaptive self-paced), lemans (endurance laps),
+  lemans-restart (kill/restart track loops). Use when user says /geno-loops.
 allowed-tools: "Bash(*) Read(*) Edit(*) Write(*)"
 license: MIT
 metadata:
@@ -46,7 +46,7 @@ engine is a different strategy for sustained progress. Skills follow the
 | geno-loops-engines-autopilot | /geno-loops-engines-autopilot | Background monitoring — watch CI/tests/lint/git |
 | geno-loops-engines-supercharge | /geno-loops-engines-supercharge | Long-running autonomous sessions — 8-24h multi-cycle runs |
 | geno-loops-engines-dynamic | /geno-loops-engines-dynamic | Adaptive self-paced — EMA-steps interval toward iteration duration + buffer |
-| geno-loops-engines-lemans | /geno-loops-engines-lemans | Endurance — long-haul iteration-on-worktree, one small verified change per lap |
-| geno-loops-engines-lemans-restart | /geno-loops-engines-lemans-restart | Kill and restart all Le Mans loops from the registry |
+| geno-loops-tracks-lemans | /geno-loops-tracks-lemans | Endurance — long-haul iteration-on-worktree, one small verified change per lap |
+| geno-loops-tracks-lemans-restart | /geno-loops-tracks-lemans-restart | Kill and restart all Le Mans loops from the registry |
 </content>
 </invoke>
