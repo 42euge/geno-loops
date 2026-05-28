@@ -66,7 +66,7 @@ Parse `$ARGUMENTS` for:
 - **`--vault <path>`** — path to shared Obsidian vault for inter-loop
   communication (see Vault Communication section below).
 - **`--remote <host>`** — SSH host alias to launch on. **This is the DEFAULT**
-  (configured in `~/.geno/geno-loops/config/config.yaml` → `execution.mode: remote`).
+  (configured in `~/.geno-tools/geno-loops/config/geno-loops.yaml` → `execution.mode: remote`).
   Resolves to hostname via `~/.geno/config.yaml` → `remote.hosts.<alias>.hostname`.
   Le Mans does NOT run locally unless `--local` is explicitly passed. Instead it:
   1. Resolves the host from config (default: `z2`)
@@ -151,7 +151,7 @@ Vault root on z2 is always `~/geno-vault/`.
 
 ### Configuration
 
-Le Mans reads defaults from `~/.geno/geno-loops/config/config.yaml`:
+Le Mans reads defaults from `~/.geno-tools/geno-loops/config/geno-loops.yaml`:
 ```yaml
 execution:
   mode: remote              # remote by default — loops survive laptop close
