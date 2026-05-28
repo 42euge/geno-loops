@@ -1,5 +1,5 @@
 ---
-name: geno-loops-lemans-restart
+name: geno-loops-engines-lemans-restart
 description: >-
   Kill and restart all Le Mans loops from the registry (~/.geno/geno-vault/loops.yaml).
   Reads the loop registry, kills all claude processes on the remote host,

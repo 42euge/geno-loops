@@ -1,5 +1,5 @@
 ---
-name: geno-loops-lemans
+name: geno-loops-engines-lemans
 description: >-
   Endurance loop — long-haul, iteration-on-worktree pattern. Each iteration
   is a single small, verified, merged-to-main change with tests, an entry

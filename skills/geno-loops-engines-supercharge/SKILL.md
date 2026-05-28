@@ -1,5 +1,5 @@
 ---
-name: geno-loops-supercharge
+name: geno-loops-engines-supercharge
 description: >-
   Run an extended autonomous work session with structured cycles of
   planning, implementation, and evaluation. Works in any workspace —
