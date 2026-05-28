@@ -1,0 +1,35 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Engines",
+      "description": "Execution loop engines — strategies for sustained autonomous work.",
+      "skills": [
+        "geno-loops-engines-turbocharge",
+        "geno-loops-engines-cruise",
+        "geno-loops-engines-boost",
+        "geno-loops-engines-drift",
+        "geno-loops-engines-ignition",
+        "geno-loops-engines-autopilot",
+        "geno-loops-engines-supercharge",
+        "geno-loops-engines-dynamic"
+      ]
+    },
+    {
+      "title": "Tracks",
+      "description": "Long-haul lap loops — sustained iteration over hours or days.",
+      "skills": [
+        "geno-loops-tracks-lemans",
+        "geno-loops-tracks-lemans-restart"
+      ]
+    },
+    {
+      "title": "Umbrella",
+      "description": "The geno-loops skillset itself.",
+      "skills": [
+        "geno-loops"
+      ]
+    }
+  ]
+}
