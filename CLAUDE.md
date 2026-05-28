@@ -46,8 +46,9 @@ geno-loops/
     │   ├── supercharge/SKILL.md
     │   └── dynamic/SKILL.md
     └── tracks/                   ← long-haul lap loops (name: geno-loops-tracks-*)
-        ├── lemans/SKILL.md
-        └── lemans-restart/SKILL.md
+        └── lemans/
+            ├── SKILL.md
+            └── restart/SKILL.md  ← kill/restart all Le Mans loops
 ```
 
 ## Conventions
