@@ -27,7 +27,7 @@ VAULT/<session>/iterations/YYYY-MM-DDTHHMM-iter-NNN.md
 - `HHMM` — Pacific time, zero-padded, 24hr (e.g. `0930`)
 - `NNN` — zero-padded 3-digit counter (e.g. `001`)
 
-Example: `t3-Session/iterations/2026-05-27T0930-iter-007.md`
+Example: `my-project/iterations/2026-05-27T0930-iter-007.md`
 
 **Schema violations** are flagged by `vault-status.sh` and reported in
 `dashboard.md`.

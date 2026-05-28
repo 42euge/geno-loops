@@ -38,9 +38,9 @@ Use the `vault-status` skill to check fleet health.
 1. Open `loops.yaml` and append under `loops:`:
 
 ```yaml
-  - session: t22-my-project
+  - session: my-project
     project: MyProject
-    work_dir: ~/code-cyan/my-project
+    work_dir: ~/code/my-project
     interval: 30m
     prompt: "Read ITERATION_LOG.md. Worktrees, ff-only merge, tests. <goal>."
 ```
@@ -48,7 +48,7 @@ Use the `vault-status` skill to check fleet health.
 2. Create the session directory in the vault:
 
 ```bash
-mkdir -p ~/geno-vault/t22-my-project/iterations
+mkdir -p ~/.geno-tools/geno-loops/vault/my-project/iterations
 ```
 
 3. The next watchdog run (within 5 min) will pick up the new session.
