@@ -34,47 +34,37 @@ to suppress healthy sessions and show only stale/missing/dead entries.
 
 ### 1. Resolve the target host
 
-Parse `$ARGUMENTS` for a positional host argument (anything that isn't `--stale-only`).
+**Step 1a — check argument.** If `$ARGUMENTS` contains a non-flag token (anything other than `--stale-only`), that is the host. Skip to step 2.
 
-If no argument is given, read from config:
+**Step 1b — check config.** Run this exact command:
 
 ```bash
 python3 -c "
-import yaml, os
-cfg = os.path.expanduser('~/.geno-tools/geno-loops/config/config.yaml')
-with open(cfg) as f:
-    c = yaml.safe_load(f)
-print(c.get('remote', {}).get('host', ''))
-"
+import os, yaml
+p = os.path.expanduser('~/.geno-tools/geno-loops/config/config.yaml')
+c = yaml.safe_load(open(p)) if os.path.exists(p) else {}
+print((c or {}).get('remote', {}).get('host', ''))
+" 2>/dev/null
 ```
 
-**If the config file does not exist or the host is empty, you MUST run the init
-flow below — do NOT stop, do NOT tell the user to re-run, do NOT ask in plain
-text. Use `AskUserQuestion` immediately.**
+If it prints a non-empty host name, use that. Skip to step 2.
 
-Init flow:
+**Step 1c — init (config missing or empty).** Do ALL of the following in order:
 
-1. Read SSH hosts: `grep '^Host ' ~/.ssh/config 2>/dev/null | awk '{print $2}' | grep -v '\*'`
-2. Call `AskUserQuestion` with the discovered hosts as options (add "Enter manually" as a final option). Example:
-   > Which remote host should be the default for /gt-loops-status?
-   > - z2
-   > - z6
-   > - Enter manually
-3. Write the chosen host to config so it's remembered:
+1. Run: `grep '^Host ' ~/.ssh/config 2>/dev/null | awk '{print $2}' | grep -v '\*'`
+2. Call `AskUserQuestion` with those hosts as options plus an "Enter manually" option. Do not output anything to the user before calling `AskUserQuestion`.
+3. Immediately after the user answers, run this to persist the choice:
    ```bash
-   mkdir -p ~/.geno-tools/geno-loops/config
-   python3 -c "
-   import yaml, os
-   cfg = os.path.expanduser('~/.geno-tools/geno-loops/config/config.yaml')
-   c = {}
-   if os.path.exists(cfg):
-       with open(cfg) as f: c = yaml.safe_load(f) or {}
-   c.setdefault('remote', {})['host'] = 'CHOSEN_HOST'
-   with open(cfg, 'w') as f: yaml.dump(c, f)
+   mkdir -p ~/.geno-tools/geno-loops/config && python3 -c "
+   import os, yaml
+   p = os.path.expanduser('~/.geno-tools/geno-loops/config/config.yaml')
+   c = yaml.safe_load(open(p)) if os.path.exists(p) else {}
+   c = c or {}
+   c.setdefault('remote', {})['host'] = '$CHOSEN_HOST'
+   yaml.dump(c, open(p, 'w'))
    "
    ```
-4. Confirm to the user: "Saved `CHOSEN_HOST` as default. Scanning now…"
-5. Continue with step 2 (process count) using the chosen host.
+4. Say: "Saved `$CHOSEN_HOST` as default remote host." Then continue to step 2.
 
 ### 2. Count live Claude processes
 
