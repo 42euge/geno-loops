@@ -1,0 +1,74 @@
+name: cosmos-loop-monitor
+description: >
+  An OpenC3 COSMOS instance hosted on z2 (remote-host) that monitors all
+  geno-loops running on the host. Each loop is modeled as a COSMOS target
+  emitting telemetry packets (iteration count, age, liveness). COSMOS's
+  built-in Telemetry Viewer plus limits monitoring become the live, always-on
+  loop dashboard — reachable from the Mac at http://remote-host:2900. A Python
+  collector microservice polls the vault and process table on z2 and injects
+  telemetry; no custom GUI is built, and the loop skills are left untouched
+  (the collector pulls, it does not require loops to push).
+
+status: active
+
+goals:
+  - OpenC3 COSMOS stack running on z2, web UI reachable from the Mac at http://remote-host:2900
+  - A COSMOS plugin (geno-loops-cosmos) defining a GENO_LOOPS target with FLEET and per-LOOP telemetry packets
+  - A pure-Python parser library (loop_sources.py) that reads the vault, iteration files, and claude process count — independently unit-tested, no COSMOS import
+  - A loop_collector microservice that polls every poll_interval seconds and injects FLEET + per-LOOP packets via the COSMOS telemetry API
+  - Limits on AGE_MINUTES (YELLOW >20 min, RED >120 min) so stale/dead loops alert automatically and color in the Telemetry Viewer
+  - CLAUDE_PROCS telemetry matches `ps aux | grep '[c]laude --dangerously' | wc -l` on z2
+  - A strong OPENC3_API_PASSWORD set, with the 0.0.0.0-bind security caveat documented in the README
+
+architecture:
+  host: z2 (remote-host) — Docker 29.4.2 + Compose v5.1.3, user in docker group, 250Gi RAM
+  cosmos_install_dir: ~/openc3 (cloned from OpenC3/cosmos-project)
+  plugin_dir: ~/geno-loops-cosmos
+  web_bind: 0.0.0.0 on port 2900 (reachable as http://remote-host:2900 from the Mac)
+  vault_root: /home/eriveraramos/geno-vault
+  vault_layout: "<PROJECT>/[<session>/]iterations/YYYY-MM-DDTHHMM-iter-NNN.md"
+  data_flow:
+    - loop_collector microservice runs inside the COSMOS stack on z2
+    - every poll_interval seconds it calls loop_sources to read the vault + process table
+    - it builds one FLEET aggregate packet and one LOOP packet per discovered project
+    - packets are injected via the openc3 python telemetry API
+    - Telemetry Viewer + limits monitoring render the live dashboard
+  packets:
+    FLEET:
+      - CLAUDE_PROCS UINT
+      - LOOPS_TOTAL UINT
+      - LOOPS_STALE UINT
+      - LOOPS_DEAD UINT
+      - TIMESTAMP STRING
+    LOOP:
+      - LOOP_NAME STRING
+      - PROJECT STRING
+      - SESSION STRING
+      - ITER_COUNT UINT
+      - LATEST_ITER UINT
+      - AGE_MINUTES FLOAT (LIMITS YELLOW >20, RED >120)
+      - ALIVE UINT (0/1)
+      - LAST_SEEN STRING
+  constraints:
+    - NEVER use tmux introspection (capture-pane / list-sessions / display-message) — it crashes z2's tmux server. Infer sessions from `ps aux | grep '[t]mux'` only.
+    - The collector runs ON z2 and reads local files directly — no ssh from inside the collector.
+    - Open-source COSMOS has a single shared password and no real multi-user auth; binding 0.0.0.0 exposes view+command to anyone on the corp network. A strong OPENC3_API_PASSWORD is mandatory; document the SSH-tunnel alternative in the README.
+
+technologies:
+  - OpenC3 COSMOS (cosmos-project, docker compose)
+  - python 3 (collector + parsers)
+  - pyyaml
+  - pytest (unit tests for loop_sources)
+  - docker / docker compose
+
+iteration_plan:
+  - Install OpenC3 COSMOS on z2 — clone cosmos-project to ~/openc3, set a strong OPENC3_API_PASSWORD in .env, start the stack, confirm http://remote-host:2900 loads from the Mac
+  - Scaffold the geno-loops-cosmos plugin skeleton — plugin.txt, targets/GENO_LOOPS/target.txt, requirements.txt, README with the security note and SSH-tunnel alternative
+  - Write lib/loop_sources.py pure parsers — count_claude_procs(), discover_loops(vault_root), latest_iter(dir) (parse iter-NNN filename + mtime→age), classify(age)→ok/stale/dead
+  - Write tests/test_loop_sources.py — pytest against a fixture vault dir mimicking <PROJECT>/iterations/2026-05-27T1038-iter-001.md; assert iter count, age, classification, proc-count parsing
+  - Define targets/GENO_LOOPS/cmd_tlm/tlm.txt — FLEET packet + LOOP packet with AGE_MINUTES limits (YELLOW >20, RED >120)
+  - Write microservices/loop_collector/loop_collector.py — poll loop building FLEET + per-LOOP packets, inject via the openc3 python telemetry API, poll_interval default 60s
+  - Wire plugin.txt — VARIABLE poll_interval 60, VARIABLE vault_root /home/eriveraramos/geno-vault, TARGET GENO_LOOPS, MICROSERVICE LOOP_COLLECTOR
+  - Build and load the plugin into COSMOS via Admin → Plugins; confirm the GENO_LOOPS target appears
+  - Verify end-to-end — Telemetry Viewer shows FLEET + per-LOOP packets updating ~60s, AGE_MINUTES flips YELLOW/RED on a stale loop, CLAUDE_PROCS matches the ps count
+  - Harden and document — confirm OPENC3_API_PASSWORD is strong, finalize README, add .gitignore (*.gem, __pycache__/)
