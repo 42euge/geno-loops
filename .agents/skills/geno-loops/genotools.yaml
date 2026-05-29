@@ -1,0 +1,5 @@
+name: geno-loops
+version: "0.2.0"
+description: Execution loop engines for autonomous agent work
+requires:
+  - geno-notes

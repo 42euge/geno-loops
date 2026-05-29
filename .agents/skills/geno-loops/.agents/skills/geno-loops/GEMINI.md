@@ -18,7 +18,6 @@
 | geno-loops-tracks-lemans | /geno-loops-tracks-lemans | Endurance | Long-haul worktree work, one small verified change per lap |
 | geno-loops-tracks-lemans-restart | /geno-loops-tracks-lemans-restart | Kill/restart | Kill and restart all Le Mans loops from the registry |
 | geno-loops-vaults-remote-status | /geno-loops-vaults-remote-status | Remote status | Live claude procs, tmux sessions, iteration recency, dashboard on a remote host |
-| geno-loops-config-init | /geno-loops-config-init | Config init | Interactive setup of ~/.geno-tools/geno-loops/config/config.yaml |
 
 ## Repo structure
 
