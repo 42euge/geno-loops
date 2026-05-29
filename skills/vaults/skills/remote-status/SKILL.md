@@ -48,11 +48,19 @@ print(c.get('remote', {}).get('host', ''))
 "
 ```
 
-**If the config file does not exist or the host is empty, run the init flow:**
+**If the config file does not exist or the host is empty, you MUST run the init
+flow below — do NOT stop, do NOT tell the user to re-run, do NOT ask in plain
+text. Use `AskUserQuestion` immediately.**
 
-1. Scan `~/.ssh/config` for Host entries: `grep '^Host ' ~/.ssh/config | awk '{print $2}'`
-2. Present the discovered hosts (plus "enter manually") to the user via `AskUserQuestion`.
-3. Once the user picks a host, write it to config:
+Init flow:
+
+1. Read SSH hosts: `grep '^Host ' ~/.ssh/config 2>/dev/null | awk '{print $2}' | grep -v '\*'`
+2. Call `AskUserQuestion` with the discovered hosts as options (add "Enter manually" as a final option). Example:
+   > Which remote host should be the default for /gt-loops-status?
+   > - z2
+   > - z6
+   > - Enter manually
+3. Write the chosen host to config so it's remembered:
    ```bash
    mkdir -p ~/.geno-tools/geno-loops/config
    python3 -c "
@@ -61,11 +69,12 @@ print(c.get('remote', {}).get('host', ''))
    c = {}
    if os.path.exists(cfg):
        with open(cfg) as f: c = yaml.safe_load(f) or {}
-   c.setdefault('remote', {})['host'] = '<chosen_host>'
+   c.setdefault('remote', {})['host'] = 'CHOSEN_HOST'
    with open(cfg, 'w') as f: yaml.dump(c, f)
    "
    ```
-4. Tell the user the host has been saved and will be the default from now on, then continue with the scan.
+4. Confirm to the user: "Saved `CHOSEN_HOST` as default. Scanning now…"
+5. Continue with step 2 (process count) using the chosen host.
 
 ### 2. Count live Claude processes
 
@@ -126,6 +135,8 @@ End with a one-line summary:
 
 - Never use `tmux list-sessions`, `tmux capture-pane`, `tmux display-message`,
   or any other tmux introspection command — they crash the tmux server on z2.
+- **Never stop and tell the user to re-run with a host argument** — always use
+  `AskUserQuestion` to collect the host interactively when config is missing.
 - Don't SSH more times than necessary — batch steps 2–4 into a single
   compound SSH call if possible.
 - Don't show raw process table dumps unless the user asks for verbose output.
