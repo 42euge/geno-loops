@@ -10,7 +10,7 @@ allowed-tools: "Bash(*) Read(*)"
 license: MIT
 metadata:
   author: 42euge
-  version: "0.1.6"
+  version: "0.1.7"
 ---
 
 # geno-loops-vaults-remote-status — Remote Session Status
@@ -66,8 +66,15 @@ Call `AskUserQuestion` with **three questions in the same call** (AskUserQuestio
 - `"One-time — just check now, skip init"` — don't create anything, use the chosen host for this run only
 
 **Q2** — header `"Host"`, question `"Which host?"`:
-- Build the option list by ranking candidates: prefer hosts whose name appears in `~/code/`, `CLAUDE.md`, or recent git history; put the best match **first** (mark it "(best guess)"). Each option: label = hostname, description = where it was found (e.g. "~/.ssh/config", "~/.zshrc").
-- Last option always: `"Enter manually"`
+
+Before building options, run this to score candidates:
+```bash
+grep -rl 'z2\|z6\|corp' ~/code/ ~/.claude/CLAUDE.md 2>/dev/null | head -5
+```
+The host whose short name appears most frequently in `~/code/` dir names or CLAUDE.md gets the top slot. Build options in this exact format:
+- First option: `label = "<host> (best guess)"`, `description = "referenced in CLAUDE.md / ~/code/ directories"` — this is the top-scored host
+- Remaining options: `label = "<host>"`, `description = "found in ~/.ssh/config"` (or whichever source)
+- Last option always: `label = "Enter manually"`, `description = "type a hostname or user@host"`
 
 **Q3** — header `"Search more"`, question `"Search for additional hosts?"`:
 - `"No — use list above"` (recommended)
