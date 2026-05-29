@@ -10,7 +10,7 @@ allowed-tools: "Bash(*) Read(*)"
 license: MIT
 metadata:
   author: 42euge
-  version: "0.1.5"
+  version: "0.1.6"
 ---
 
 # geno-loops-vaults-remote-status — Remote Session Status
@@ -62,8 +62,8 @@ First collect host candidates:
 Call `AskUserQuestion` with **three questions in the same call** (AskUserQuestion supports up to 4):
 
 **Q1** — header `"Setup"`, question `"No remote host configured. What would you like to do?"`:
-- `"Init — save a default host"` (recommended) — save config so future runs skip this prompt
-- `"One-time — just check now"` — don't write anything
+- `"Run init — set up config directory and save default host"` (recommended) — runs the init flow: creates `~/.geno-tools/geno-loops/config/` and writes `config.yaml` so future runs skip this prompt
+- `"One-time — just check now, skip init"` — don't create anything, use the chosen host for this run only
 
 **Q2** — header `"Host"`, question `"Which host?"`:
 - Build the option list by ranking candidates: prefer hosts whose name appears in `~/code/`, `CLAUDE.md`, or recent git history; put the best match **first** (mark it "(best guess)"). Each option: label = hostname, description = where it was found (e.g. "~/.ssh/config", "~/.zshrc").
@@ -77,7 +77,7 @@ Call `AskUserQuestion` with **three questions in the same call** (AskUserQuestio
 After the user answers:
 
 - If Q3 = scan option: run the corresponding command, merge new hosts into the candidate list, then re-ask Q2 with the expanded list.
-- If Q1 = **"Init — save a default host"**: run:
+- If Q1 = **"Run init"**: run:
   ```bash
   mkdir -p ~/.geno-tools/geno-loops/config && python3 -c "
   import os, yaml
@@ -87,8 +87,8 @@ After the user answers:
   yaml.dump(c, open(p, 'w'))
   "
   ```
-  Say: "Saved `CHOSEN_HOST` as default. Future runs will skip this prompt."
-- If Q1 = **"One-time"**: proceed without writing config.
+  Say: "Init complete — created `~/.geno-tools/geno-loops/config/config.yaml` with `CHOSEN_HOST` as default. Future runs will skip this prompt."
+- If Q1 = **"One-time — just check now, skip init"**: proceed without writing config.
 
 Use the host from Q2 for the rest of the workflow.
 
