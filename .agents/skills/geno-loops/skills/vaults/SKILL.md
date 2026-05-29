@@ -34,4 +34,3 @@ vault-agent meta-loop.
 | `geno-loops-vaults-iteration` | Per-session iteration protocol and filename schema |
 | `geno-loops-vaults-watchdog` | Watchdog health, cron setup, force rebuild |
 | `geno-loops-vaults-remote-status` | Show live processes, tmux sessions, iteration recency, and dashboard on a remote host |
-| `geno-loops-config-init` | Initialize runtime config directory and write config.yaml |

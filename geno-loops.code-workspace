@@ -1,0 +1,18 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "geno-loops"
+    }
+  ],
+  "settings": {
+    "window.title": "geno-loops Workspace",
+    "workbench.colorCustomizations": {
+      "titleBar.activeBackground": "#c2410c",
+      "titleBar.activeForeground": "#ffffff",
+      "activityBar.background": "#9a3412",
+      "statusBar.background": "#c2410c",
+      "statusBar.foreground": "#ffffff"
+    }
+  }
+}

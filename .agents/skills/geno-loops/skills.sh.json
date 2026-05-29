@@ -29,7 +29,6 @@
       "description": "Remote loop fleet management — status, watchdog, agent, sync.",
       "skills": [
         "geno-loops-vaults-remote-status",
-        "geno-loops-config-init",
         "geno-loops-vaults-fleet-status",
         "geno-loops-vaults-fleet",
         "geno-loops-vaults-agent",
