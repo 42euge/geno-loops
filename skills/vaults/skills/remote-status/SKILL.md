@@ -10,7 +10,7 @@ allowed-tools: "Bash(*) Read(*)"
 license: MIT
 metadata:
   author: 42euge
-  version: "0.1.1"
+  version: "0.1.2"
 ---
 
 # geno-loops-vaults-remote-status — Remote Session Status
@@ -51,20 +51,34 @@ If it prints a non-empty host name, use that. Skip to step 2.
 
 **Step 1c — init (config missing or empty).** Do ALL of the following in order:
 
-1. Run: `grep '^Host ' ~/.ssh/config 2>/dev/null | awk '{print $2}' | grep -v '\*'`
-2. Call `AskUserQuestion` with those hosts as options plus an "Enter manually" option. Do not output anything to the user before calling `AskUserQuestion`.
-3. Immediately after the user answers, run this to persist the choice:
+1. Collect candidate hosts from multiple sources and deduplicate:
+   ```bash
+   # SSH config hosts
+   grep '^Host ' ~/.ssh/config 2>/dev/null | awk '{print $2}' | grep -v '\*'
+   # Shell rc files — lines like: alias ssh-z2='ssh z2' or HOST=z2 or ssh z2
+   grep -hEo '\bssh [a-zA-Z0-9_-]+\b|\b(HOST|host|REMOTE|remote)=[a-zA-Z0-9_-]+\b' \
+     ~/.bashrc ~/.zshrc ~/.bash_profile ~/.zprofile ~/.profile 2>/dev/null \
+     | grep -oE '[a-zA-Z0-9_-]+$' | sort -u
+   ```
+   Merge the two lists, deduplicate, and use as the option set for AskUserQuestion.
+2. Call `AskUserQuestion` with **two questions**:
+   - Q1 header "Host" — which host to check. Options: each discovered SSH host, plus "Enter manually".
+   - Q2 header "Save config?" — whether to save this as the default. Options:
+     - "Yes, save as default" (recommended) — write to `~/.geno-tools/geno-loops/config/config.yaml` so future runs skip this prompt.
+     - "No, one-time only" — just use it for this run without writing config.
+3. If the user chose "Yes, save as default", run:
    ```bash
    mkdir -p ~/.geno-tools/geno-loops/config && python3 -c "
    import os, yaml
    p = os.path.expanduser('~/.geno-tools/geno-loops/config/config.yaml')
-   c = yaml.safe_load(open(p)) if os.path.exists(p) else {}
-   c = c or {}
-   c.setdefault('remote', {})['host'] = '$CHOSEN_HOST'
+   c = (yaml.safe_load(open(p)) if os.path.exists(p) else None) or {}
+   c.setdefault('remote', {})['host'] = 'CHOSEN_HOST'
    yaml.dump(c, open(p, 'w'))
+   print('saved')
    "
    ```
-4. Say: "Saved `$CHOSEN_HOST` as default remote host." Then continue to step 2.
+   Then say: "Saved `CHOSEN_HOST` as default."
+4. Continue to step 2 using the chosen host.
 
 ### 2. Count live Claude processes
 
