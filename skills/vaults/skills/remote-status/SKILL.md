@@ -10,7 +10,7 @@ allowed-tools: "Bash(*) Read(*)"
 license: MIT
 metadata:
   author: 42euge
-  version: "0.1.3"
+  version: "0.1.4"
 ---
 
 # geno-loops-vaults-remote-status — Remote Session Status
@@ -32,21 +32,11 @@ to suppress healthy sessions and show only stale/missing/dead entries.
 
 ## Workflow
 
-### 1. Collect host candidates (always run this first)
+### 1. Check for a pre-configured host
 
-Run both commands and merge the results:
+If `$ARGUMENTS` contains a non-flag token (anything other than `--stale-only`), use it as the host and jump to step 3.
 
-```bash
-# SSH config
-grep '^Host ' ~/.ssh/config 2>/dev/null | awk '{print $2}' | grep -v '\*'
-# Shell rc files
-grep -hEo '\bssh [a-zA-Z0-9_-]+\b|\b(HOST|host|REMOTE|remote)=[a-zA-Z0-9_-]+\b' \
-  ~/.bashrc ~/.zshrc ~/.bash_profile ~/.zprofile ~/.profile 2>/dev/null \
-  | grep -oE '[a-zA-Z0-9_-]+$' | sort -u
-```
-
-Also read the saved config if it exists:
-
+Otherwise run:
 ```bash
 python3 -c "
 import os, yaml
@@ -55,25 +45,33 @@ c = yaml.safe_load(open(p)) if os.path.exists(p) else {}
 print((c or {}).get('remote', {}).get('host', ''))
 " 2>/dev/null
 ```
+If it prints a non-empty host, use it and jump to step 3.
 
-### 2. Ask the user — REQUIRED, always call AskUserQuestion here
+### 2. Init prompt — REQUIRED when no host is configured
 
-**This step is mandatory. Do not skip it. Do not substitute plain-text output.**
+**This step is mandatory. Call `AskUserQuestion` — do not output plain text and wait.**
 
-If a host was already given in `$ARGUMENTS` (any non-flag token) OR the config printed a non-empty host, skip this step and use that host.
+First collect host candidates:
+```bash
+{ grep '^Host ' ~/.ssh/config 2>/dev/null | awk '{print $2}' | grep -v '\*';
+  grep -hEo '\bssh [a-zA-Z0-9_-]+\b|\b(HOST|host|REMOTE|remote)=[a-zA-Z0-9_-]+\b' \
+    ~/.bashrc ~/.zshrc ~/.bash_profile ~/.zprofile ~/.profile 2>/dev/null \
+    | grep -oE '[a-zA-Z0-9_-]+$'; } | sort -u
+```
 
-Otherwise call `AskUserQuestion` with exactly these two questions:
+Call `AskUserQuestion` with **two questions in the same call** (max 4 supported — use remaining slots for future config axes like vault path or SSH key if needed):
 
-**Q1** — header `"Host"`, question `"Which host should I check?"`:
-- One option per discovered candidate (label = hostname, description = where it was found)
-- Plus an "Enter manually" option
+**Q1** — header `"Setup"`, question `"No remote host configured. What would you like to do?"`:
+- `"Init — save a default host"` — save config so future runs need no argument
+- `"One-time — just check now"` — skip writing config
 
-**Q2** — header `"Save config"`, question `"Save this host as the default for future runs?"`:
-- `"Yes — save as default"` (recommended): writes `~/.geno-tools/geno-loops/config/config.yaml`
-- `"No — one-time only"`: just use it now, don't write anything
+**Q2** — header `"Host"`, question `"Which host?"`:
+- One option per discovered candidate, label = the hostname, description = e.g. "found in ~/.ssh/config"
+- Last option: `"Enter manually"`
 
 After the user answers:
-- If "Yes — save as default": run:
+
+- If Q1 = **"Init — save a default host"**:
   ```bash
   mkdir -p ~/.geno-tools/geno-loops/config && python3 -c "
   import os, yaml
@@ -83,7 +81,11 @@ After the user answers:
   yaml.dump(c, open(p, 'w'))
   "
   ```
-  Say: "Saved `CHOSEN_HOST` as default remote host."
+  Say: "Saved `CHOSEN_HOST` as default. Future runs will skip this prompt."
+
+- If Q1 = **"One-time — just check now"**: proceed without writing config.
+
+Use the host from Q2 for the rest of the workflow.
 
 ### 3. Count live Claude processes
 
