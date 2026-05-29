@@ -10,7 +10,7 @@ allowed-tools: "Bash(*) Read(*)"
 license: MIT
 metadata:
   author: 42euge
-  version: "0.1.4"
+  version: "0.1.5"
 ---
 
 # geno-loops-vaults-remote-status — Remote Session Status
@@ -59,19 +59,25 @@ First collect host candidates:
     | grep -oE '[a-zA-Z0-9_-]+$'; } | sort -u
 ```
 
-Call `AskUserQuestion` with **two questions in the same call** (max 4 supported — use remaining slots for future config axes like vault path or SSH key if needed):
+Call `AskUserQuestion` with **three questions in the same call** (AskUserQuestion supports up to 4):
 
 **Q1** — header `"Setup"`, question `"No remote host configured. What would you like to do?"`:
-- `"Init — save a default host"` — save config so future runs need no argument
-- `"One-time — just check now"` — skip writing config
+- `"Init — save a default host"` (recommended) — save config so future runs skip this prompt
+- `"One-time — just check now"` — don't write anything
 
 **Q2** — header `"Host"`, question `"Which host?"`:
-- One option per discovered candidate, label = the hostname, description = e.g. "found in ~/.ssh/config"
-- Last option: `"Enter manually"`
+- Build the option list by ranking candidates: prefer hosts whose name appears in `~/code/`, `CLAUDE.md`, or recent git history; put the best match **first** (mark it "(best guess)"). Each option: label = hostname, description = where it was found (e.g. "~/.ssh/config", "~/.zshrc").
+- Last option always: `"Enter manually"`
+
+**Q3** — header `"Search more"`, question `"Search for additional hosts?"`:
+- `"No — use list above"` (recommended)
+- `"Yes — scan shell history"` — run `grep -h 'ssh ' ~/.bash_history ~/.zsh_history 2>/dev/null | grep -oE 'ssh [a-zA-Z0-9_@.-]+' | awk '{print $2}' | sort -u` and add any new unique hosts to Q2's list before proceeding
+- `"Yes — scan recent git remotes"` — run `git -C ~ remote -v 2>/dev/null | grep -oE '@[a-zA-Z0-9_.-]+' | tr -d '@' | sort -u`
 
 After the user answers:
 
-- If Q1 = **"Init — save a default host"**:
+- If Q3 = scan option: run the corresponding command, merge new hosts into the candidate list, then re-ask Q2 with the expanded list.
+- If Q1 = **"Init — save a default host"**: run:
   ```bash
   mkdir -p ~/.geno-tools/geno-loops/config && python3 -c "
   import os, yaml
@@ -82,8 +88,7 @@ After the user answers:
   "
   ```
   Say: "Saved `CHOSEN_HOST` as default. Future runs will skip this prompt."
-
-- If Q1 = **"One-time — just check now"**: proceed without writing config.
+- If Q1 = **"One-time"**: proceed without writing config.
 
 Use the host from Q2 for the rest of the workflow.
 
