@@ -10,7 +10,7 @@ allowed-tools: "Bash(*) Read(*)"
 license: MIT
 metadata:
   author: 42euge
-  version: "0.1.8"
+  version: "0.1.9"
 ---
 
 # geno-loops-vaults-remote-status — Remote Session Status
@@ -67,28 +67,47 @@ Call `AskUserQuestion` with **three questions in the same call** (AskUserQuestio
 
 **Q2** — header `"Host"`, question `"Which host?"`:
 
-Score candidates by running:
+Run this single command and read the output — it produces the ranked, deduplicated host list:
 ```bash
-for h in $CANDIDATES; do
-  count=$(grep -rl "$h" ~/code/ ~/.claude/CLAUDE.md 2>/dev/null | wc -l)
-  echo "$count $h"
-done | sort -rn | head -5
-```
-The highest-scoring host is the best guess. Build the options array like this — the label for the top host MUST include the literal text `(best guess)`:
+python3 - <<'EOF'
+import subprocess, os, re
+from pathlib import Path
 
-```
-option 1: label="<TOP_HOST> (best guess)"  description="referenced <N> times in ~/code/ and CLAUDE.md"
-option 2: label="<NEXT_HOST>"              description="found in ~/.ssh/config"
-option 3: label="<NEXT_HOST>"              description="found in ~/.ssh/config"
-option 4: label="Enter manually"           description="type a hostname or user@host"
+# Collect SSH config hosts
+ssh_hosts = subprocess.getoutput("grep '^Host ' ~/.ssh/config 2>/dev/null | awk '{print $2}' | grep -v '[*?]'").splitlines()
+# Collect rc file hosts  
+rc_hosts = subprocess.getoutput(
+  r"grep -hEo '\bssh [a-zA-Z0-9_-]+\b|\b(HOST|host|REMOTE|remote)=[a-zA-Z0-9_-]+\b' "
+  r"~/.bashrc ~/.zshrc ~/.bash_profile ~/.zprofile ~/.profile 2>/dev/null "
+  r"| grep -oE '[a-zA-Z0-9_-]+$'"
+).splitlines()
+
+# Merge, deduplicate, filter noise
+all_hosts = list(dict.fromkeys(ssh_hosts + rc_hosts))
+all_hosts = [h for h in all_hosts if not h.startswith('-') and '.' not in h and len(h) > 1]
+# Remove long-form if short form already present (e.g. drop remote-host if z2 is there)
+short = [h for h in all_hosts if '-' not in h or len(h) <= 4]
+all_hosts = [h for h in all_hosts if not any(h.endswith('-'+s) or h.endswith(s) for s in short if s != h)]
+
+# Score by references in ~/code/ and CLAUDE.md
+scores = {}
+for h in all_hosts:
+    try:
+        n = int(subprocess.getoutput(f"grep -rl '{h}' ~/code/ ~/.claude/CLAUDE.md 2>/dev/null | wc -l").strip())
+    except:
+        n = 0
+    scores[h] = n
+
+ranked = sorted(all_hosts, key=lambda h: scores[h], reverse=True)
+for i, h in enumerate(ranked):
+    tag = " (best guess)" if i == 0 and scores[h] > 0 else ""
+    print(f"{h}{tag}|{scores[h]} refs in ~/code/ and CLAUDE.md")
+EOF
 ```
 
-Example with z2 as winner:
-```
-option 1: label="z2 (best guess)"   description="referenced 12 times in ~/code/ and CLAUDE.md"
-option 2: label="z6"                description="found in ~/.ssh/config"
-option 3: label="Enter manually"    description="type a hostname or user@host"
-```
+Each output line is `<label>|<description>`. The **first line** becomes option 1 in Q2 — its label already contains `(best guess)`. Pass all lines directly as options, then append `Enter manually|type a hostname or user@host` as the last option.
+
+Do not reorder or relabel the output. Use it verbatim.
 
 **Q3** — header `"Search more"`, question `"Search for additional hosts?"`:
 - `"No — use list above"` (recommended)
