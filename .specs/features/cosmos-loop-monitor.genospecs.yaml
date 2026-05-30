@@ -1,93 +1,120 @@
 name: cosmos-loop-monitor
 description: >
-  A production OpenC3 COSMOS-based manager for geno-loops running on z2
-  (remote-host). Phase 1 delivers real-time monitoring: a host-side sidecar
-  collector sees host processes, tmux sessions, and the vault directly, and
-  PUSHES telemetry into COSMOS over its API. Each running loop occupies a
-  stable slot in a pre-sized slot pool so the whole fleet is visible at once
-  in a dedicated GENO_LOOPS Telemetry Viewer screen with per-loop limits
-  coloring. Phase 2 adds management: COSMOS commands (START/STOP/STEER) handled
-  by the same sidecar, which executes them on the host via tmux/ssh/vault.
-  The COSMOS demo targets (INST/INST2/EXAMPLE/TEMPLATED) are removed so the UI
-  shows only geno-loops data.
+  A production OpenC3 COSMOS-based manager for geno-loops agents running on z2
+  (remote-host). Each autonomous agent (a workspace session running a loop) is
+  modeled as a COSMOS TARGET — the idiomatic COSMOS shape: a thing you
+  telemeter and command. Because COSMOS targets are static at plugin-build
+  time, we pre-declare a pool of agent targets AGENT_01..AGENT_32, each with a
+  rich telemetry packet (loop state, runtime/resources, work output, project
+  linkage). A host-side sidecar on z2 sees real host processes, tmux sessions,
+  and the vault, binds each live agent session to a free agent target, and
+  pushes telemetry via the COSMOS inject_tlm API. Per-item LIMITS give
+  automatic alerting (e.g. CONTEXT_PCT > 90 → YELLOW, AGE_MINUTES > 120 → RED).
+  Phase 2 adds commanding (START/STOP/STEER) routed through the same sidecar.
+  The COSMOS demo plugin has been removed so only geno-loops data shows.
 
 status: active
 
 # ── Architecture decisions (locked with the user) ──────────────────────────
-# 1. COLLECTOR = HOST-SIDE SIDECAR, not a COSMOS in-container microservice.
-#    Rationale: COSMOS runs in Docker containers blind to host processes/tmux.
-#    The earlier in-container microservice is why CLAUDE_PROCS=0 and every loop
-#    showed DEAD. A host-side service on z2 sees /proc, tmux, and the vault
-#    directly, PUSHES telemetry to COSMOS via the JSON API, and is ALSO the
-#    bridge that executes Phase-2 control commands. One component, both phases.
-# 2. FLEET MODEL = PRE-SIZED SLOT POOL. COSMOS packets are static at build
-#    time but loops are dynamic (~21 now, names change, some die/spawn).
-#    Define LOOP_SLOT_1..LOOP_SLOT_32; the sidecar assigns each discovered loop
-#    a stable slot keyed by session name. Shows all loops at once. 32 = ~21 +
-#    headroom. The single overwrite-prone LOOP packet is replaced.
-# 3. PHASED: Phase 1 monitoring (this spec's primary goal); Phase 2 control
-#    (commands) built on the same sidecar once monitoring is solid.
+# AGENT = TARGET. An autonomous loop-running agent maps to a COSMOS target:
+#   live telemetry (runtime, context%, iteration, phase) + commandable
+#   (start/stop/steer). This is more COSMOS-native than a custom tool or a
+#   single-target/slot-pool packet hack.
+#
+# CONSTRAINT (verified 2026-05-29): COSMOS Core 7.1.1 does NOT create targets
+#   or packet structures at runtime. create_target / set_tlm_packet are not
+#   public API; targets+packets are static at plugin install. inject_tlm exists
+#   but only fills a PRE-EXISTING packet structure. Docs confirm static-only.
+#
+# THEREFORE: PRE-DECLARED AGENT TARGET POOL. The plugin statically declares
+#   AGENT_01..AGENT_32 (real targets, each with the full item schema). The
+#   sidecar binds a live session to a free agent target (by session name) and
+#   injects its telemetry. Cap is tunable (32 ≈ ~21 current + headroom). When
+#   an agent dies its target frees; COSMOS data store preserves the history.
+#   Unlike the rejected slot-pool, each agent is a FIRST-CLASS target with its
+#   own packet, screen, limits, and (Phase 2) command set.
+#
+# COLLECTOR = HOST-SIDE SIDECAR (not an in-container microservice). Containers
+#   are blind to host procs/tmux — that caused CLAUDE_PROCS=0 / all-DEAD. The
+#   sidecar runs on the host, owns a binding map (session→agent target) in
+#   sqlite, pushes telemetry, and is the executor for Phase-2 commands.
 
 goals:
-  - Host-side sidecar collector on z2 that reads host procs + tmux + vault and pushes telemetry to COSMOS over its JSON API (no in-container process blindness)
-  - CLAUDE_PROCS reflects the real host process count and per-loop ALIVE/age is correct (fixes the all-DEAD bug)
-  - Pre-sized LOOP_SLOT_1..32 packet pool so the entire fleet is visible simultaneously, each loop pinned to a stable slot by session name
-  - A dedicated GENO_LOOPS Telemetry Viewer screen — fleet summary header plus per-loop rows with AGE_MINUTES limits coloring (YELLOW >20m, RED >120m)
-  - COSMOS demo targets (INST, INST2, EXAMPLE, TEMPLATED) removed so only GENO_LOOPS telemetry shows
-  - Sidecar runs durably on z2 (systemd unit or supervised tmux) and survives reconnects
-  - Phase 2 — COSMOS commands START_LOOP / STOP_LOOP / STEER_LOOP routed to the sidecar, which executes via tmux send-keys / vault inbox notes (NEVER tmux introspection)
-  - A strong OPENC3_API_PASSWORD; 0.0.0.0 bind + OPENC3_ALLOW_HTTP documented with the SSH-tunnel alternative
+  - Pre-declared agent target pool AGENT_01..AGENT_32 in the plugin, each a real COSMOS target with the full per-agent telemetry packet
+  - Host-side sidecar on z2 that reads host procs + tmux + vault, binds live sessions to free agent targets (stable session→target map in sqlite), and pushes telemetry via inject_tlm
+  - Correct liveness — real claude process count and per-agent ALIVE/age (fixes the in-container CLAUDE_PROCS=0 / all-DEAD bug)
+  - Rich per-agent items across four groups (loop state, runtime/resources, work output, project linkage) with per-item LIMITS for automatic alerting
+  - An aggregate FLEET target/packet (totals — agents alive/stale/dead, host claude_procs) for fleet-health limits, alerting, and history
+  - Per-agent Telemetry Viewer screens + a fleet overview screen shipped in the plugin
+  - Sidecar supervised durably on z2 (systemd user unit) — restarts on failure, survives reconnects
+  - Phase 2 — COSMOS commands START_AGENT / STOP_AGENT / STEER_AGENT per agent target, routed to the sidecar executor (tmux send-keys / SIGTERM / vault inbox note)
+  - Demo removed (done operationally) and re-documented as a reproducible runtime uninstall; strong OPENC3_API_PASSWORD; 0.0.0.0+HTTP + SSH-tunnel documented
 
 architecture:
   host: z2 (remote-host) — Docker 29.4.2 + Compose v5.1.3, 250Gi RAM
-  cosmos_install_dir: ~/openc3 (OpenC3 COSMOS Core 7.1.1, docker compose)
+  cosmos: OpenC3 COSMOS Core 7.1.1 (docker compose), ~/openc3, http://remote-host:2900 (0.0.0.0, OPENC3_ALLOW_HTTP=1)
   plugin_dir: ~/geno-loops-cosmos
-  web: bound 0.0.0.0:2900, OPENC3_ALLOW_HTTP=1 set (CSP allows http origin) — http://remote-host:2900
   vault_root: /home/eriveraramos/geno-vault
   vault_layout: "<PROJECT>/[<session>/]iterations/YYYY-MM-DDTHHMM-iter-NNN.md"
-  collector:
-    type: host-side sidecar (runs ON z2 host, NOT in a container)
-    reads: "ps (claude procs), tmux session names via ps grep, vault iteration files, per-repo ITERATION_LOG.md"
-    pushes: "telemetry to COSMOS via POST /openc3-api/api (auth via /openc3-api/auth/verify → Authorization header)"
-    supervision: systemd user unit (preferred) or supervised tmux session
-  fleet_model:
-    scheme: pre-sized slot pool
-    packets:
-      FLEET: "CLAUDE_PROCS, LOOPS_TOTAL, LOOPS_STALE, LOOPS_DEAD, TIMESTAMP"
-      LOOP_SLOT_1..32: "SLOT_INDEX, LOOP_NAME, PROJECT, SESSION, ITER_COUNT, LATEST_ITER, AGE_MINUTES (LIMITS YELLOW>20 RED>120), ALIVE, LAST_SEEN, OCCUPIED(0/1)"
-    slot_assignment: "stable map session_name → slot index, persisted by the sidecar so a loop keeps its slot across polls; unoccupied slots report OCCUPIED=0"
-  screen:
-    tool: COSMOS Telemetry Viewer screen definition shipped in the plugin (targets/GENO_LOOPS/screens/)
-    layout: "fleet summary row (totals/stale/dead/procs) above a table of occupied LOOP_SLOT rows with limits coloring"
-  phase2_control:
-    commands: "START_LOOP(project, spec), STOP_LOOP(session), STEER_LOOP(session, note)"
-    executor: "the same sidecar — START via tmux new-session+send-keys, STOP via SIGTERM to the loop's claude pid, STEER via writing a vault inbox note"
+
+  agent_target_pool:
+    targets: AGENT_01 .. AGENT_32   # static in plugin; tunable count
+    binding: "sidecar maps session_name → AGENT_NN, persisted in sqlite so an agent keeps its target across polls; freed on death; OCCUPIED item flags live vs free"
+    per_agent_packet_items:
+      core_loop_state: [ITERATION, PHASE, AGE_MINUTES, ALIVE]          # PHASE: planning|implementing|testing|merging|idle
+      runtime_resources: [RUNTIME_SEC, CONTEXT_PCT, TOKENS, MODEL]
+      work_output: [COMMITS, TESTS_PASS, TESTS_FAIL, LAST_COMMIT_SHA, FF_MERGES]
+      project_linkage: [PROJECT, SESSION, WORKTREE, SPEC]
+      binding_meta: [OCCUPIED, LAST_SEEN]
+    limits:
+      AGE_MINUTES: "YELLOW HIGH 20, RED HIGH 120"
+      CONTEXT_PCT:  "YELLOW HIGH 80, RED HIGH 92"
+      TESTS_FAIL:   "RED HIGH 1 (any failing test alerts)"
+
+  fleet_target:
+    target: GENO_LOOPS
+    packet: FLEET
+    items: [AGENTS_TOTAL, AGENTS_ALIVE, AGENTS_STALE, AGENTS_DEAD, CLAUDE_PROCS, TIMESTAMP]
+    purpose: aggregate fleet-health alerting/history (e.g. AGENTS_DEAD RED HIGH 1)
+
+  sidecar:
+    type: host-side service on z2 (systemd user unit), NOT a container
+    reads: "ps (claude procs + cwd), tmux session names via ps grep, vault iterations, per-repo ITERATION_LOG.md/git"
+    derives: "context% and runtime from the agent's claude proc + session start; iteration/phase from vault + git; commits/tests from git log + repo state"
+    state: "sqlite — session→AGENT_NN binding map + last-known per-agent values"
+    pushes: "inject_tlm to COSMOS (auth: POST /openc3-api/auth/verify → raw ses_ token as Authorization header)"
+    executes: "Phase-2 commands via tmux send-keys / SIGTERM to the agent's claude pid / vault inbox note"
+
   constraints:
     - NEVER use tmux introspection (capture-pane/list-sessions/display-message) — crashes z2's tmux. Infer sessions from `ps aux | grep '[t]mux'`; drive only via new-session/send-keys.
-    - The sidecar runs on the host; it does NOT ssh into itself. COSMOS containers never try to see host procs.
-    - Open-source COSMOS has a single shared password and no multi-user auth; 0.0.0.0 + HTTP exposes view AND command to the corp network. Strong OPENC3_API_PASSWORD mandatory; SSH-tunnel documented as the safer path.
+    - The sidecar runs on the host; never sshes into itself. COSMOS containers never try to read host procs.
+    - COSMOS cannot create targets/packets at runtime — the agent pool MUST be statically declared in the plugin; changing the item schema or pool size requires a plugin rebuild+reload.
+    - Open-source COSMOS has one shared password and no multi-user auth; 0.0.0.0+HTTP exposes view AND command to the corp network. Strong OPENC3_API_PASSWORD mandatory; SSH-tunnel documented as the safer path.
 
 technologies:
   - OpenC3 COSMOS Core 7.1.1 (docker compose)
-  - python 3 (sidecar collector + control executor)
-  - COSMOS JSON-RPC API (inject_tlm / set_tlm; auth/verify)
+  - python 3 (sidecar: collectors, sqlite binding store, COSMOS API client, command executor)
+  - COSMOS JSON-RPC API (inject_tlm; auth/verify)
   - systemd user unit (sidecar supervision)
-  - pytest (unit tests for parsers + slot assignment)
+  - pytest (parsers, binding/assignment logic, telemetry mapping)
 
-# Items 1-10 of the original plan (install, plugin skeleton, parsers, tests,
-# single-LOOP tlm.txt, in-container microservice, plugin load, vault mount,
-# e2e verify, harden/document) are DONE but built the WRONG collector model.
-# This plan pivots to the production architecture above. The pure parsers in
-# lib/loop_sources.py and their tests are reused as-is.
+# DONE (earlier run, partially wrong model — reused where noted):
+#  - COSMOS installed + running on z2; HTTP/CSP fixed (OPENC3_ALLOW_HTTP). [keep]
+#  - lib/loop_sources.py pure parsers + tests. [REUSE in the sidecar]
+#  - Demo plugin (openc3-cosmos-demo) UNINSTALLED operationally → live targets
+#    now just GENO_LOOPS + UNKNOWN. [re-document as reproducible runtime step]
+#  - SUPERSEDED: in-container LOOP_COLLECTOR microservice, single LOOP packet,
+#    and the LOOP_SLOT_1..32 slot-pool idea — all replaced by the agent-target
+#    pool + host-side sidecar below.
 iteration_plan:
-  - Strip the COSMOS demo — remove/disable INST, INST2, EXAMPLE, TEMPLATED targets so only GENO_LOOPS remains in the UI
-  - Decommission the in-container LOOP_COLLECTOR microservice from plugin.txt (it cannot see host procs); keep lib/loop_sources.py parsers
-  - Build the host-side sidecar — a python service on z2 that imports loop_sources, polls every interval, authenticates to COSMOS, and pushes telemetry via the JSON API; verify CLAUDE_PROCS is now nonzero and ALIVE is correct
-  - Redefine telemetry as a pre-sized slot pool — replace the single LOOP packet with FLEET + LOOP_SLOT_1..32 in tlm.txt, each slot with AGE_MINUTES limits
-  - Implement stable slot assignment in the sidecar — persist session_name→slot map so each loop keeps its slot; mark unoccupied slots OCCUPIED=0; unit-test the assignment logic
-  - Rebuild and reload the plugin with the new packet definitions; confirm all ~21 loops appear across slots simultaneously
-  - Ship a GENO_LOOPS Telemetry Viewer screen in the plugin (fleet summary + per-loop slot table with limits coloring)
-  - Supervise the sidecar durably on z2 (systemd user unit preferred, or supervised tmux) so it restarts on failure and survives reconnects
-  - End-to-end verify monitoring — Telemetry Viewer screen shows correct live fleet; kill a loop and watch its slot flip ALIVE=0 / AGE_MINUTES go RED
-  - Phase 2 — define START_LOOP/STOP_LOOP/STEER_LOOP commands in the plugin and route them to the sidecar executor (tmux send-keys / SIGTERM / vault inbox note); verify a STOP from the UI actually stops a loop
-  - Harden and document — README covers sidecar setup/supervision, the slot-pool model, command usage, and the security posture (HTTP/0.0.0.0 + password + tunnel)
+  - Re-document the demo removal — add scripts/remove_demo_plugin.sh (idempotent runtime uninstall of openc3-cosmos-demo via the admin API) so a stack rebuild stays demo-free; remove the in-container LOOP_COLLECTOR microservice from plugin.txt
+  - Declare the agent target pool — define AGENT_01..AGENT_32 targets in the plugin, each with the full per-agent packet (core loop state, runtime/resources, work output, project linkage, binding meta) and per-item LIMITS; build+load and confirm all agent targets register
+  - Define the aggregate FLEET target/packet with fleet-health LIMITS
+  - Sidecar skeleton — host-side python service importing loop_sources; discovers live agent sessions; sqlite session→AGENT_NN binding store with stable/free logic; unit tests for binding
+  - Sidecar telemetry push — authenticate to COSMOS and inject_tlm for FLEET + each occupied AGENT target every interval; verify CLAUDE_PROCS nonzero and ALIVE correct across all agents simultaneously
+  - Enrich per-agent items — derive RUNTIME_SEC, CONTEXT_PCT, ITERATION, PHASE, COMMITS, TESTS_PASS/FAIL, PROJECT/SESSION/WORKTREE/SPEC; map into the packet; unit-test the derivations
+  - Per-agent + fleet Telemetry Viewer screens shipped in the plugin (fleet overview + a per-agent detail screen)
+  - Supervise the sidecar — systemd user unit with restart-on-failure; auth/secret handling for the COSMOS token; survives reconnect
+  - E2E verify monitoring — all live agents visible with correct rich telemetry; kill an agent and watch its target flip ALIVE=0 / AGE_MINUTES RED and free its binding
+  - Phase 2 — define START_AGENT/STOP_AGENT/STEER_AGENT commands per agent target, routed to the sidecar executor; verify a STOP from the COSMOS UI actually stops that agent
+  - Harden + document — README: sidecar setup/supervision, the agent-target-pool model and its static-pool caveat, command usage, demo-removal reproducibility, and security posture
