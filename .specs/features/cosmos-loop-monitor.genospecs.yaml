@@ -4,7 +4,7 @@ description: >
   (remote-host). Each autonomous agent (a workspace session running a loop) is
   modeled as a COSMOS TARGET — the idiomatic COSMOS shape: a thing you
   telemeter and command. Because COSMOS targets are static at plugin-build
-  time, we pre-declare a pool of agent targets AGENT_01..AGENT_32, each with a
+  time, we pre-declare a pool of agent targets AGENT_01..AGENT_42, each with a
   rich telemetry packet (loop state, runtime/resources, work output, project
   linkage). A host-side sidecar on z2 sees real host processes, tmux sessions,
   and the vault, binds each live agent session to a free agent target, and
@@ -27,9 +27,9 @@ status: active
 #   but only fills a PRE-EXISTING packet structure. Docs confirm static-only.
 #
 # THEREFORE: PRE-DECLARED AGENT TARGET POOL. The plugin statically declares
-#   AGENT_01..AGENT_32 (real targets, each with the full item schema). The
+#   AGENT_01..AGENT_42 (real targets, each with the full item schema). The
 #   sidecar binds a live session to a free agent target (by session name) and
-#   injects its telemetry. Cap is tunable (32 ≈ ~21 current + headroom). When
+#   injects its telemetry. Cap is tunable (42 ≈ ~21 current + headroom). When
 #   an agent dies its target frees; COSMOS data store preserves the history.
 #   Unlike the rejected slot-pool, each agent is a FIRST-CLASS target with its
 #   own packet, screen, limits, and (Phase 2) command set.
@@ -40,7 +40,7 @@ status: active
 #   sqlite, pushes telemetry, and is the executor for Phase-2 commands.
 
 goals:
-  - Pre-declared agent target pool AGENT_01..AGENT_32 in the plugin, each a real COSMOS target with the full per-agent telemetry packet
+  - Pre-declared agent target pool AGENT_01..AGENT_42 in the plugin, each a real COSMOS target with the full per-agent telemetry packet
   - Host-side sidecar on z2 that reads host procs + tmux + vault, binds live sessions to free agent targets (stable session→target map in sqlite), and pushes telemetry via inject_tlm
   - Correct liveness — real claude process count and per-agent ALIVE/age (fixes the in-container CLAUDE_PROCS=0 / all-DEAD bug)
   - Rich per-agent items across four groups (loop state, runtime/resources, work output, project linkage) with per-item LIMITS for automatic alerting
@@ -58,7 +58,7 @@ architecture:
   vault_layout: "<PROJECT>/[<session>/]iterations/YYYY-MM-DDTHHMM-iter-NNN.md"
 
   agent_target_pool:
-    targets: AGENT_01 .. AGENT_32   # static in plugin; tunable count
+    targets: AGENT_01 .. AGENT_42   # static in plugin; tunable count
     binding: "sidecar maps session_name → AGENT_NN, persisted in sqlite so an agent keeps its target across polls; freed on death; OCCUPIED item flags live vs free"
     per_agent_packet_items:
       core_loop_state: [ITERATION, PHASE, AGE_MINUTES, ALIVE]          # PHASE: planning|implementing|testing|merging|idle
@@ -108,7 +108,7 @@ technologies:
 #    pool + host-side sidecar below.
 iteration_plan:
   - Re-document the demo removal — add scripts/remove_demo_plugin.sh (idempotent runtime uninstall of openc3-cosmos-demo via the admin API) so a stack rebuild stays demo-free; remove the in-container LOOP_COLLECTOR microservice from plugin.txt
-  - Declare the agent target pool — define AGENT_01..AGENT_32 targets in the plugin, each with the full per-agent packet (core loop state, runtime/resources, work output, project linkage, binding meta) and per-item LIMITS; build+load and confirm all agent targets register
+  - Declare the agent target pool — define AGENT_01..AGENT_42 targets in the plugin, each with the full per-agent packet (core loop state, runtime/resources, work output, project linkage, binding meta) and per-item LIMITS; build+load and confirm all agent targets register
   - Define the aggregate FLEET target/packet with fleet-health LIMITS
   - Sidecar skeleton — host-side python service importing loop_sources; discovers live agent sessions; sqlite session→AGENT_NN binding store with stable/free logic; unit tests for binding
   - Sidecar telemetry push — authenticate to COSMOS and inject_tlm for FLEET + each occupied AGENT target every interval; verify CLAUDE_PROCS nonzero and ALIVE correct across all agents simultaneously
