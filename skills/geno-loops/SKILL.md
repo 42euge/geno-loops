@@ -2,11 +2,9 @@
 name: geno-loops
 description: >-
   Execution loop engines and track loops — turbocharge (spec-driven
-  convergence), cruise (plan-driven sequential), boost (pomodoro focus),
-  drift (question-driven exploration), ignition (cold-start bootstrap),
-  autopilot (background monitoring), supercharge (long-running autonomous
-  sessions), dynamic (adaptive self-paced), lemans (endurance laps),
-  lemans-restart (kill/restart track loops). Use when user says /geno-loops.
+  convergence), supercharge (long-running autonomous sessions), lemans
+  (endurance laps), lemans-restart (kill/restart track loops).
+  Use when user says /geno-loops.
 allowed-tools: "Bash(*) Read(*) Edit(*) Write(*)"
 license: MIT
 metadata:
@@ -39,13 +37,7 @@ engine is a different strategy for sustained progress. Skills follow the
 | Skill | Slash command | Pattern |
 |-------|---------------|---------|
 | geno-loops-engines-turbocharge | /geno-loops-engines-turbocharge | Spec-driven convergence — iterate until all criteria pass |
-| geno-loops-engines-cruise | /geno-loops-engines-cruise | Plan-driven sequential — execute steps one at a time |
-| geno-loops-engines-boost | /geno-loops-engines-boost | Pomodoro focus — time-boxed blocks with reflection |
-| geno-loops-engines-drift | /geno-loops-engines-drift | Question-driven exploration — prioritized Q queue |
-| geno-loops-engines-ignition | /geno-loops-engines-ignition | Cold-start bootstrap — turn goal into blueprint |
-| geno-loops-engines-autopilot | /geno-loops-engines-autopilot | Background monitoring — watch CI/tests/lint/git |
 | geno-loops-engines-supercharge | /geno-loops-engines-supercharge | Long-running autonomous sessions — 8-24h multi-cycle runs |
-| geno-loops-engines-dynamic | /geno-loops-engines-dynamic | Adaptive self-paced — EMA-steps interval toward iteration duration + buffer |
 | geno-loops-tracks-lemans | /geno-loops-tracks-lemans | Endurance — long-haul iteration-on-worktree, one small verified change per lap |
 | geno-loops-tracks-lemans-restart | /geno-loops-tracks-lemans-restart | Kill and restart all Le Mans loops from the registry |
 </content>

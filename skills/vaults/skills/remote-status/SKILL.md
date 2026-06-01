@@ -10,7 +10,7 @@ allowed-tools: "Bash(*) Read(*)"
 license: MIT
 metadata:
   author: 42euge
-  version: "0.1.9"
+  version: "0.2.0"
 ---
 
 # geno-loops-vaults-remote-status — Remote Session Status
@@ -85,9 +85,10 @@ rc_hosts = subprocess.getoutput(
 # Merge, deduplicate, filter noise
 all_hosts = list(dict.fromkeys(ssh_hosts + rc_hosts))
 all_hosts = [h for h in all_hosts if not h.startswith('-') and '.' not in h and len(h) > 1]
-# Remove long-form if short form already present (e.g. drop remote-host if z2 is there)
-short = [h for h in all_hosts if '-' not in h or len(h) <= 4]
-all_hosts = [h for h in all_hosts if not any(h.endswith('-'+s) or h.endswith(s) for s in short if s != h)]
+# Prefer short aliases: if a short name (<=6 chars, no internal dots) and a longer
+# name share the same suffix, keep only the short one (e.g. keep "z2", drop "host-z2")
+short = [h for h in all_hosts if len(h) <= 6 and '-' not in h]
+all_hosts = [h for h in all_hosts if h in short or not any(h.endswith(s) for s in short if s != h)]
 
 # Score by references in ~/code/ and CLAUDE.md
 scores = {}
@@ -132,7 +133,28 @@ After the user answers:
 
 Use the host from Q2 for the rest of the workflow.
 
-### 3. Count live Claude processes
+### 3. Detect if already running ON the target host
+
+Before SSHing, check whether the current machine IS the target:
+
+```bash
+LOCAL_HOSTNAME=$(uname -n 2>/dev/null)
+SSH_CONNECTION_SET="${SSH_CONNECTION:-}"
+```
+
+If `$LOCAL_HOSTNAME` matches `<host>` (exact or prefix), OR `$SSH_CONNECTION` is set (meaning this session itself came in over SSH), skip all `ssh <host>` calls and read files directly instead:
+
+```bash
+# Local fast-path — read directly
+ps aux | grep '[c]laude --dangerously' | wc -l
+ps aux | grep '[t]mux' | grep -v grep
+find ~/geno-vault -name '*iter*.md' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -40
+cat ~/geno-vault/dashboard.md 2>/dev/null || echo "(no dashboard.md found)"
+```
+
+Otherwise proceed with SSH in steps 4–7.
+
+### 4. Count live Claude processes
 
 ```bash
 ssh <host> "ps aux | grep '[c]laude --dangerously' | wc -l"
@@ -141,11 +163,10 @@ ssh <host> "ps aux | grep '[c]laude --dangerously' | wc -l"
 Report the count. If 0, note that no loops appear to be running.
 
 **Do NOT use any tmux introspection commands** (`tmux list-sessions`,
-`tmux capture-pane`, `tmux display-message`, etc.) — these crash the tmux
-server on z2. The only safe tmux command is `tmux new-session` and
-`tmux send-keys`.
+`tmux capture-pane`, `tmux display-message`, etc.) — these can crash the tmux
+server. The only safe tmux command is `tmux new-session` and `tmux send-keys`.
 
-### 4. List tmux sessions via process list
+### 5. List tmux sessions via process list
 
 Since tmux introspection is unsafe, infer sessions from the process table:
 
@@ -155,7 +176,7 @@ ssh <host> "ps aux | grep '[t]mux' | grep -v grep"
 
 Show the raw lines — they contain the session name in the command args.
 
-### 5. Read most recent iteration per loop
+### 6. Read most recent iteration per loop
 
 ```bash
 ssh <host> "find ~/geno-vault -name '*iter*.md' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -40"
@@ -170,7 +191,7 @@ Flag loops whose most recent iteration is older than 1 hour as **stale**.
 
 If `--stale-only`, suppress loops updated within the last hour.
 
-### 6. Show dashboard.md
+### 7. Show dashboard.md
 
 ```bash
 ssh <host> "cat ~/geno-vault/dashboard.md 2>/dev/null || echo '(no dashboard.md found)'"
@@ -179,7 +200,7 @@ ssh <host> "cat ~/geno-vault/dashboard.md 2>/dev/null || echo '(no dashboard.md 
 Print the full contents. If the file doesn't exist, note it and suggest running
 `/geno-loops-vaults-agent` to generate it.
 
-### 7. Summary line
+### 8. Summary line
 
 End with a one-line summary:
 
@@ -190,7 +211,7 @@ End with a one-line summary:
 ## Don'ts
 
 - Never use `tmux list-sessions`, `tmux capture-pane`, `tmux display-message`,
-  or any other tmux introspection command — they crash the tmux server on z2.
+  or any other tmux introspection command — these can crash the tmux server on some hosts.
 - **Never stop and tell the user to re-run with a host argument** — always use
   `AskUserQuestion` to collect the host interactively when config is missing.
 - Don't SSH more times than necessary — batch steps 2–4 into a single
