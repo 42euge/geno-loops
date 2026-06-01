@@ -8,13 +8,7 @@
 |-------|---------------|---------|----------|
 | geno-loops | /geno-loops | Umbrella | Entry point — routes to the right engine |
 | geno-loops-engines-turbocharge | /geno-loops-engines-turbocharge | Spec-driven convergence | TDD, contract-first, migrations with known targets |
-| geno-loops-engines-cruise | /geno-loops-engines-cruise | Plan-driven sequential | Checklists, runbooks, multi-step refactors |
-| geno-loops-engines-boost | /geno-loops-engines-boost | Pomodoro focus | Time-boxed deep work with periodic reflection |
-| geno-loops-engines-drift | /geno-loops-engines-drift | Question-driven exploration | Research, investigation, discovery |
-| geno-loops-engines-ignition | /geno-loops-engines-ignition | Cold-start bootstrap | Turning a vague goal into a concrete blueprint |
-| geno-loops-engines-autopilot | /geno-loops-engines-autopilot | Background monitoring | Watching CI, tests, lint, git for changes |
 | geno-loops-engines-supercharge | /geno-loops-engines-supercharge | Long-running autonomous | 8–24h multi-cycle runs |
-| geno-loops-engines-dynamic | /geno-loops-engines-dynamic | Adaptive self-paced | Recurring tasks with variable runtime |
 | geno-loops-tracks-lemans | /geno-loops-tracks-lemans | Endurance | Long-haul worktree work, one small verified change per lap |
 | geno-loops-tracks-lemans-restart | /geno-loops-tracks-lemans-restart | Kill/restart | Kill and restart all Le Mans loops from the registry |
 | geno-loops-vaults-remote-status | /geno-loops-vaults-remote-status | Remote status | Live claude procs, tmux sessions, iteration recency, dashboard on a remote host |
@@ -40,13 +34,7 @@ geno-loops/
     ├── geno-loops/SKILL.md          ← umbrella skill
     ├── engines/                     ← strategy loops (name: geno-loops-engines-*)
     │   ├── turbocharge/SKILL.md
-    │   ├── cruise/SKILL.md
-    │   ├── boost/SKILL.md
-    │   ├── drift/SKILL.md
-    │   ├── ignition/SKILL.md
-    │   ├── autopilot/SKILL.md
-    │   ├── supercharge/SKILL.md
-    │   └── dynamic/SKILL.md
+    │   └── supercharge/SKILL.md
     └── tracks/                   ← long-haul lap loops (name: geno-loops-tracks-*)
         └── lemans/
             ├── SKILL.md
